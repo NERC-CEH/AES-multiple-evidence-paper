@@ -16,20 +16,33 @@ shandiv <- function(x){
 dir <- config::get()
 fpath <- dir$directories$ukbmsdata
 
-wcbs_ukbms <- read.csv(paste0(fpath, "Citizen science datasets/UKBMS_WCBS/site_data_2017-19.txt"))
+wcbs_ukbms <- read.table(paste0(fpath, "site_date_2017-2021.txt"), sep = "\t", header = TRUE)
 
 # Subset to UKBMS
 ukbms_sites <- wcbs_ukbms[wcbs_ukbms$SCHEME == "UKBMS",]
 
-# Get location data
-CSlocs <- read_excel(paste0(fpath, "Citizen science datasets/CitizenScienceGridRefs.xlsx"), col_types = c("text", "text", "text", "numeric", "numeric"))
-ukbms_locs <- filter(CSlocs, SCHEME == "UKBMS")
-
 # Get species data
-wcbs_ukbms_species <- read.csv(paste0(fpath,"Citizen science datasets/UKBMS_WCBS/count _data_2017-2019.txt"))
+wcbs_ukbms_species <- read.table(paste0(fpath,"count_date_2017-2021.txt"), sep = "\t", header = TRUE)
 
 # filter to UKBMS
 ukbms_species <- filter(wcbs_ukbms_species, SCHEME == "UKBMS" & SITENO %in% ukbms_sites$SITENO)
+
+# Get transect data
+ukbms_transect <- read.table(paste0(fpath,"ONLINE_sitedata_2017-2021.txt"), sep = "\t", header = TRUE)
+
+ukbms_species$transect2 <- ukbms_transect$LENGTH[match(ukbms_species$SITENO, ukbms_transect$SITE_NO)]
+
+transect_mismatch <- unique(ukbms_species[ukbms_species$transect2 != ukbms_species$TRANSECT_LENGTH|is.na(ukbms_species$transect2)|is.na(ukbms_species$TRANSECT_LENGTH),c(1,2,11)])
+
+
+#species - site match
+
+unique(ukbms_sites$SITENO[!ukbms_sites$SITENO %in% ukbms_species$SITENO])
+
+#visits
+ukbms_visit <- read.table(paste0(fpath,"visit_data_2017-2021.txt"), sep = "\t", header = TRUE)
+
+
 
 # get transect length and add to site data
 # check if each site has always the same transect length
