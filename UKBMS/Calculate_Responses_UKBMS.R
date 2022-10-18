@@ -43,6 +43,12 @@ unique(ukbms_sites$SITENO[!ukbms_sites$SITENO %in% ukbms_species$SITENO])
 ukbms_visit <- read.table(paste0(fpath,"visit_data_2017-2021.txt"), sep = "\t", header = TRUE)
 
 
+# Get location data
+scpath <- dir$directories$scoredata
+CSlocs <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
+ukbms_locs <- CSlocs[CSlocs$buttsurv.SITENO %in% ukbms_sites$SITENO,]
+
+
 
 # get transect length and add to site data
 # check if each site has always the same transect length
@@ -58,8 +64,8 @@ janitor::get_dupes(ukbms_transect, SITENO)
 # all metadata
 ukbms_sites <- full_join(ukbms_sites, ukbms_transect) %>%
   select(SITENO, EAST, NORTH, YEAR, N_VISITS_MAYTOAUGUST, TRANSECT_LENGTH) %>%
-  full_join(select(ukbms_locs, SITENO = `SITE CODE`,
-                   GRIDREF_1KM) %>%
+  full_join(select(ukbms_locs, SITENO = `buttsurv.SITENO`,
+                   buttsurv.GRIDREF_1km) %>%
   mutate(SITENO = as.numeric(SITENO)))
 
 
@@ -93,4 +99,4 @@ summary(UKBMS_RESPONSES)
 psych::multi.hist(select_if(UKBMS_RESPONSES, is.numeric))
 
 plot(Abundance ~ N_VISITS_MAYTOAUGUST, UKBMS_RESPONSES)
-plot(Abundance ~ N_VISITS_MAYTOAUGUST, UKBMS_RESPONSES)
+plot(Richness ~ N_VISITS_MAYTOAUGUST, UKBMS_RESPONSES)
