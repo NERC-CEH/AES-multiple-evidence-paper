@@ -28,11 +28,11 @@ wcbs_ukbms_species <- read.table(paste0(fpath,"count_date_2017-2021.txt"), sep =
 ukbms_species <- filter(wcbs_ukbms_species, SCHEME == "UKBMS" & SITENO %in% ukbms_sites$SITENO)
 
 # Get transect data
-ukbms_transect <- read.table(paste0(fpath,"ONLINE_sitedata_2017-2021.txt"), sep = "\t", header = TRUE)
+ukbms_transectlength <- read.table(paste0(fpath,"ONLINE_sitedata_2017-2021.txt"), sep = "\t", header = TRUE)
 
-ukbms_species$transect2 <- ukbms_transect$LENGTH[match(ukbms_species$SITENO, ukbms_transect$SITE_NO)]
+ukbms_species$TRANSECT_LENGTH_NEW <- ukbms_transectlength$LENGTH[match(ukbms_species$SITENO, ukbms_transectlength$SITE_NO)]
 
-transect_mismatch <- unique(ukbms_species[ukbms_species$transect2 != ukbms_species$TRANSECT_LENGTH|is.na(ukbms_species$transect2)|is.na(ukbms_species$TRANSECT_LENGTH),c(1,2,11)])
+transect_mismatch <- unique(ukbms_species[ukbms_species$TRANSECT_LENGTH_NEW != ukbms_species$TRANSECT_LENGTH|is.na(ukbms_species$TRANSECT_LENGTH_NEW)|is.na(ukbms_species$TRANSECT_LENGTH),c(1,2,11)])
 
 
 #species - site match
@@ -46,6 +46,9 @@ ukbms_visit <- read.table(paste0(fpath,"visit_data_2017-2021.txt"), sep = "\t", 
 # Get location data
 scpath <- dir$directories$scoredata
 CSlocs <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
+CSlocs <- CSlocs[!duplicated(CSlocs[,2:14]),2:14]#remove duplicate rows, some squares have more than one site number due to multiple transects in that location
+#remove locations for masked squares
+CSlocs <- CSlocs[CSlocs$MaskStatus == "OK",]#also includes squares with NA mask which are coastal
 ukbms_locs <- CSlocs[CSlocs$buttsurv.SITENO %in% ukbms_sites$SITENO,]
 
 
@@ -53,18 +56,18 @@ ukbms_locs <- CSlocs[CSlocs$buttsurv.SITENO %in% ukbms_sites$SITENO,]
 # get transect length and add to site data
 # check if each site has always the same transect length
 ukbms_species %>% group_by(SITENO) %>% 
-  summarise(n = length(unique(TRANSECT_LENGTH))) %>% 
+  summarise(n = length(unique(TRANSECT_LENGTH_NEW))) %>% 
   janitor::tabyl(n)
 # every site has maximum 1 transect length
-ukbms_transect <- select(ukbms_species, SITENO, TRANSECT_LENGTH) %>%
+ukbms_transect <- select(ukbms_species, SITENO, TRANSECT_LENGTH_NEW) %>%
   unique()
 janitor::get_dupes(ukbms_transect, SITENO)
 # no duplicates
 
 # all metadata
 ukbms_sites <- full_join(ukbms_sites, ukbms_transect) %>%
-  select(SITENO, EAST, NORTH, YEAR, N_VISITS_MAYTOAUGUST, TRANSECT_LENGTH) %>%
-  full_join(select(ukbms_locs, SITENO = `buttsurv.SITENO`,
+  select(SITENO, EAST, NORTH, YEAR, N_VISITS_MAYTOAUGUST, TRANSECT_LENGTH_NEW) %>%
+  left_join(select(ukbms_locs, SITENO = `buttsurv.SITENO`,
                    buttsurv.GRIDREF_1km) %>%
   mutate(SITENO = as.numeric(SITENO)))
 
@@ -94,6 +97,12 @@ UKBMS_RESPONSES <- ukbms_species %>%
   inner_join(ukbms_sites) %>%
   # remove site with unfeasibly high abundances
   filter(SITENO != 1063)
+
+#remove masked grid references
+
+UKBMS_RESPONSES <- UKBMS_RESPONSES[!is.na(UKBMS_RESPONSES$buttsurv.GRIDREF_1km),]
+
+UKBMS_RESPONSES <- UKBMS_RESPONSES[!duplicated(UKBMS_RESPONSES),]
 
 summary(UKBMS_RESPONSES)
 psych::multi.hist(select_if(UKBMS_RESPONSES, is.numeric))
