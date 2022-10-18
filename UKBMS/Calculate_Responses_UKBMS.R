@@ -22,7 +22,7 @@ wcbs_ukbms <- read.table(paste0(fpath, "site_date_2017-2021.txt"), sep = "\t", h
 ukbms_sites <- wcbs_ukbms[wcbs_ukbms$SCHEME == "UKBMS",]
 
 # Get species data
-wcbs_ukbms_species <- read.table(paste0(fpath,"count_date_2017-2021.txt"), sep = "\t", header = TRUE)
+wcbs_ukbms_species <- read.table(paste0(fpath,"count_data_2017-2021_v2.txt"), sep = ",", header = TRUE)
 
 # filter to UKBMS
 ukbms_species <- filter(wcbs_ukbms_species, SCHEME == "UKBMS" & SITENO %in% ukbms_sites$SITENO)
@@ -94,9 +94,15 @@ UKBMS_RESPONSES <- ukbms_species %>%
   summarise(Abundance = sum(COUNT),
             Richness = sum(COUNT>0),
             Shannon_diversity = shandiv(COUNT)) %>%
-  inner_join(ukbms_sites) %>%
+  right_join(ukbms_sites) %>%
+  # change to right join so sites with no butterflies are still included
   # remove site with unfeasibly high abundances
-  filter(SITENO != 1063)
+  filter(SITENO != 1063) %>%
+  # remove site with missing species data (4856) 
+  filter(SITENO != 4856)
+
+#replace NA values in Richness, Abundance and Shannon_diversity with 0
+  UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")][is.na(UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")])] <- 0
 
 #remove masked grid references
 
