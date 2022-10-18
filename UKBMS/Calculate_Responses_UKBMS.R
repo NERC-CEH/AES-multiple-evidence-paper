@@ -32,6 +32,8 @@ ukbms_transectlength <- read.table(paste0(fpath,"ONLINE_sitedata_2017-2021.txt")
 
 ukbms_species$TRANSECT_LENGTH_NEW <- ukbms_transectlength$LENGTH[match(ukbms_species$SITENO, ukbms_transectlength$SITE_NO)]
 
+ukbms_species$TRANSECT_LENGTH_NEW[is.na(ukbms_species$TRANSECT_LENGTH_NEW)|ukbms_species$TRANSECT_LENGTH_NEW == 0] <- ukbms_species$TRANSECT_LENGTH[is.na(ukbms_species$TRANSECT_LENGTH_NEW)|ukbms_species$TRANSECT_LENGTH_NEW == 0]
+
 transect_mismatch <- unique(ukbms_species[ukbms_species$TRANSECT_LENGTH_NEW != ukbms_species$TRANSECT_LENGTH|is.na(ukbms_species$TRANSECT_LENGTH_NEW)|is.na(ukbms_species$TRANSECT_LENGTH),c(1,2,11)])
 
 
@@ -102,8 +104,11 @@ UKBMS_RESPONSES <- ukbms_species %>%
   filter(SITENO != 4856)
 
 #replace NA values in Richness, Abundance and Shannon_diversity with 0
-  UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")][is.na(UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")])] <- 0
+UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")][is.na(UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")])] <- 0
 
+#remove transect lengths less than 50m (6 entries)
+UKBMS_RESPONSES <- UKBMS_RESPONSES[UKBMS_RESPONSES$TRANSECT_LENGTH_NEW > 49,]
+  
 #remove masked grid references
 
 UKBMS_RESPONSES <- UKBMS_RESPONSES[!is.na(UKBMS_RESPONSES$buttsurv.GRIDREF_1km),]
