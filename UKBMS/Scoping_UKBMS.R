@@ -1,6 +1,6 @@
 #' # Citizen Science data scoping - UK Butterfly Monitoring Scheme
 #' 
-#' *v3 19/11/2020*
+#' *v3 20/10/2022*
 #' 
 #' Susan Jarvis
 #' 
@@ -38,13 +38,16 @@ theme_set(theme_bw())
 #' 
 #' Firstly set path to project folder
 #' 
-fpath <- config_path
+dir <- config::get()
+fpath <- dir$directories$ukbmsdata
+scpath <- dir$directories$scoredata
+envpath <- dir$directories$envdata
 
 #' The datasets required for this scoping are as follows:
 #' 
 #' 1. UKBMS square locations
 #' 
-wcbs_ukbms <- read.csv(paste0(fpath, "Citizen science datasets/UKBMS_WCBS/site_data_2017-19.txt"))
+wcbs_ukbms <-  read.table(paste0(fpath, "site_date_2017-2021.txt"), sep = "\t", header = TRUE)
 #'
 #' Subset to UKBMS
 #' 
@@ -56,11 +59,11 @@ ukbms <- wcbs_ukbms[wcbs_ukbms$SCHEME == "UKBMS",]
 #' 
 #' Need to set column types to correctly read in the site code column
 #+ warning = FALSE, message = FALSE 
-CSlocs <- read_excel(paste0(fpath, "Citizen science datasets/CitizenScienceGridRefs.xlsx"), col_types = c("text", "text", "text", "numeric", "numeric"))
+CSlocs <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
 #'
 #' 3. AES scores
 #' 
-AES <- read.csv(paste0(fpath, "AES uptake/Outputs/All_1kmCells_Scored.csv"))
+AES <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
 #'
 #' 4. Habitat variables
 #' 
@@ -68,11 +71,11 @@ load("Data/Habitat variables for scoping.Rdata")
 #' 
 #' 5. Severely Disadvantaged Areas
 #' 
-sda <- read.csv(paste0(fpath, "Landscape and Environmental Data/LFA/sda_1km.csv"))
+sda <- read.csv(paste0(envpath, "LFA/sda_1km.csv"))
 #' 
 #' 6. Map of England
 #' 
-ENG <- read_sf("Data/england.shp")
+ENG <- read_sf(paste0(envpath, "EnglandOutline/england.shp"))
 
 
 #'
@@ -82,9 +85,11 @@ ENG <- read_sf("Data/england.shp")
 #' 
 #' 1. Match UKBMS locations to the cleaned locations from John 
 #' 
-ukbms$Ecent <- CSlocs$Ecent[match(ukbms$SITENO, CSlocs$`SITE CODE`)]
-ukbms$Ncent <- CSlocs$Ncent[match(ukbms$SITENO, CSlocs$`SITE CODE`)]
-ukbms$GRIDREF_1KM <- CSlocs$GRIDREF_1KM[match(ukbms$SITENO, CSlocs$`SITE CODE`)]
+CSlocs <- CSlocs[!duplicated(CSlocs[,2:14]),2:14]#remove duplicate rows, some squares have more than one site number due to multiple transects in that location
+#remove locations for masked squares
+CSlocs <- CSlocs[CSlocs$MaskStatus == "OK",]#also includes squares with NA mask which are coastal
+
+ukbms$GRIDREF_1KM <- CSlocs$buttsurv.GRIDREF_1km[match(ukbms$SITENO, CSlocs$buttsurv.SITENO)]
 
 #' 2. Match UKBMS data to AES data - this requires information on both the location & year of survey
 #' 
@@ -94,40 +99,38 @@ ukbms$GRIDREF_1KM <- CSlocs$GRIDREF_1KM[match(ukbms$SITENO, CSlocs$`SITE CODE`)]
 #' As suggested we will remove any squares from the AES data that have either >50% woodland or >30% urban or freshwater from both the all England set of squares and the scheme squares
 #' 
 
-AES <- AES[AES$Masked == "",]
-#removes about 20,000 squares
+AES <- AES[AES$MaskStatus == "OK" & !is.na(AES$MaskStatus),]
+AES <- AES[!duplicated(AES[,2:14]),2:14]#remove duplicate rows, some squares have more than one site number due to multiple transects in that location
 
-AES_melt_1km <- melt(AES, id.vars = c("CELLCODE", "Ecent", "Ncent", "M_TITLE", "nca_num", "NBuff", "NonMasked"), measure.vars = c("Sc17.1km", "Sc18.1km", "Sc19.1km", "Sc20.1km"))
+AES_melt_1km <- melt(AES, id.vars = c("CELLCODE", "buttsurv.SITENO", "buttsurv.GRIDREF_1km"), measure.vars = c("Score1km_2017", "Score1km_2018", "Score1km_2019", "Score1km_2021"))
 
-AES_melt_1km$year <- as.numeric(paste0("20", substr(AES_melt_1km$variable, 3,4)))
-names(AES_melt_1km)[9] <- "AES1KM"
+AES_melt_1km$year <- as.numeric(substr(AES_melt_1km$variable, 10,13))
+names(AES_melt_1km)[5] <- "AES1KM"
 
-AES_melt_3km <- melt(AES, id.vars = c("CELLCODE", "Ecent", "Ncent", "M_TITLE", "nca_num", "NBuff", "NonMasked"), measure.vars = c("Sc17.3km", "Sc18.3km", "Sc19.3km", "Sc20.3km"))
+AES_melt_3km <- melt(AES, id.vars = c("CELLCODE", "buttsurv.SITENO", "buttsurv.GRIDREF_1km"), measure.vars = c("Score3km_2017", "Score3km_2018", "Score3km_2019", "Score3km_2021"))
 
-AES_melt_3km$year <- as.numeric(paste0("20", substr(AES_melt_3km$variable, 3,4)))
-names(AES_melt_3km)[9] <- "AES3KM"
+AES_melt_3km$year <- as.numeric(substr(AES_melt_3km$variable, 10,13))
+names(AES_melt_3km)[5] <- "AES3KM"
 
 #remove 2020 for comparison
 
-AES_melt_1km <- AES_melt_1km[AES_melt_1km$year %in% c(2017, 2018, 2019),]
-AES_melt_3km <- AES_melt_3km[AES_melt_3km$year %in% c(2017, 2018, 2019),]
+AES_melt_1km <- AES_melt_1km[AES_melt_1km$year %in% c(2017, 2018, 2019, 2021),]
+AES_melt_3km <- AES_melt_3km[AES_melt_3km$year %in% c(2017, 2018, 2019, 2021),]
 
 
 #' We can now merge the dataframes by grid reference and year to match the AES scores to the UKBMS data
 
-ukbms_df <- merge(ukbms, AES_melt_1km, by.x = c("GRIDREF_1KM", "YEAR", "Ecent", "Ncent"), by.y = c("CELLCODE", "year", "Ecent", "Ncent"))
+ukbms_df <- merge(ukbms, AES_melt_1km, by.x = c("SITENO", "GRIDREF_1KM", "YEAR"), by.y = c("buttsurv.SITENO", "CELLCODE", "year"))
 
-ukbms_df <- merge(ukbms_df, AES_melt_3km[,c(1,10,9)], by.x = c("GRIDREF_1KM", "YEAR"), by.y = c("CELLCODE", "year"))
+ukbms_df <- merge(ukbms_df, AES_melt_3km[,c(1,5,6)], by.x = c("GRIDREF_1KM", "YEAR"), by.y = c("CELLCODE", "year"))
 
-#' 595 UKBMS squares don't match to AES scores.
+#' 754 UKBMS squares don't match to AES scores.
 #' 
 
-ukbms_sqs <- unique(ukbms$GRIDREF_1KM[!ukbms$GRIDREF_1KM %in% ukbms_df$GRIDREF_1KM])
+ukbms_sqs <- unique(ukbms$SITENO[is.na(ukbms$GRIDREF_1KM)])
 length(ukbms_sqs)
 
-#' 38 of these are coastal squares. This was also the cause of missing AES scores for WCBS squares. In addition one square has NA values for 3km AES (SZ1790, coastal square near Bournemouth)
-#' 
-#' The remainder of squares are missing AES scores because they are in masked areas (i.e. > 50% woodland or > 30% urban or freshwater). There 1030 squares remaining so masking removed ~ 1/3 squares. This is a larger proportion than for WCBS.
+
 
 #' 
 #' 3. Match the UKBMS data to the habitat data
@@ -144,7 +147,7 @@ ukbms_df2 <- merge(ukbms_df2, sda[,c(3,4,5)],
                  by.y = "PLAN_NO", 
                  all.x = TRUE)
 
-ukbms_df2[is.na(ukbms_df2$area_msq),c(25,26)] <- 0
+ukbms_df2[is.na(ukbms_df2$area_msq),c(20,21)] <- 0
 #'
 
 #' ## Scoping
@@ -165,122 +168,14 @@ tapply(ukbms_df2$N_VISITS_MAYTOAUGUST, ukbms_df2$YEAR, function (x) summary(x))
 #' 
 #' 2. Assess coverage of CS data along AES gradients
 #'
-#' Firstly look at individual gradients
-#' 
-#' Plot the distribution of AES scores across England. Very time consuming to plot all 500,000 so take random sample of same size as CS data.  Graphs are plotted on a log scale because the distribution of AES scores is very skewed with many low values and few high values. For ease of interpretation vertical lines are added at scores of 500 and 5000 (used in design of LM0465 to differentiate Low, Medium and High AES squares).
-#' 
-#' 1km:
-#' 
-all_col <- rgb(1,0,0,0.2)
-CS_col <- rgb(0,0,1,0.2)
-
-plot_dat <- data.frame(AES1KM = c(AES_melt_1km$AES1KM[sample(1:nrow(AES_melt_1km), 
-                                                             size = nrow(ukbms_df2), 
-                                                             replace = FALSE)], 
-                                  ukbms_df2$AES1KM), 
-                       Source = c(rep("Whole countryside",nrow(ukbms_df2)),
-                                  rep("UKBMS",nrow(ukbms_df2))))
-
-ggplot(plot_dat) + 
-  geom_histogram(aes(x = AES1KM, colour = Source, fill = Source), binwidth = 0.2) +
-  facet_wrap(~Source, nrow = 2) +
-  scale_color_manual(values = c(all_col, CS_col)) +
-  scale_fill_manual(values = c(all_col, CS_col)) +
-  labs(x = "1km AES score distribution") + 
-  scale_x_log10() +
-  scale_x_log10(oob=scales::oob_squish_infinite)+ 
-  geom_vline(xintercept = 500) +
-  geom_vline(xintercept = 5000) 
-
-#' 3km:
-
-plot_dat3 <- data.frame(AES3KM = c(AES_melt_3km$AES3KM[sample(1:nrow(AES_melt_3km), 
-                                                              size = nrow(ukbms_df2), 
-                                                              replace = FALSE)], 
-                                   ukbms_df2$AES3KM), 
-                        Source = c(rep("Whole countryside",nrow(ukbms_df2)),
-                                   rep("UKBMS",nrow(ukbms_df2))))
-
-ggplot(plot_dat3) + 
-  geom_histogram(aes(x = AES3KM, colour = Source, fill = Source), binwidth = 0.2) +
-  facet_wrap(~Source, nrow = 2) +
-  scale_color_manual(values = c(all_col, CS_col)) +
-  scale_fill_manual(values = c(all_col, CS_col)) +
-  labs(x = "3km AES score distribution") + 
-  scale_x_log10() +
-  scale_x_log10(oob=scales::oob_squish_infinite)+ 
-  geom_vline(xintercept = 500) +
-  geom_vline(xintercept = 5000) 
-
-
-#' Looks like UKBMS squares are slightly skewed to higher local AES now that masked squares have been removed, potential for these squares to be placed in "higher quality" areas?
-#' 
-#' Can also compare ranges
-#' 
-range(AES_melt_1km$AES1KM); range(ukbms_df2$AES1KM)
-range(AES_melt_3km$AES3KM, na.rm = TRUE); range(ukbms_df2$AES3KM, na.rm=TRUE)
-
-#' Ranges are ok, as expected UKBMS doesn't cover the very high ends of the local and landscape AES gradients
-#' 
-#' Also need to split into high, medium, low categories for both scores to compare coverage of both gradients.  These categories are defined as used in the design of LM0465. Tables show the proportion of squares in each of the 9 categories of local & landscape AES.
-#' 
-#' 
-#' Low = 0 - 500
-#' 
-#' Medium = 501 - 5000
-#' 
-#' High = 5001 +
-#' 
-#need to create a combined all AES table
-
-AES_all <- merge(AES_melt_1km[,c(1,9,10)], 
-                 AES_melt_3km[,c(1,9,10)], 
-                 by = c("CELLCODE", "year"))
-AES_all$Cat_1KM <- cut(AES_all$AES1KM, 
-                       c(-1,500,5000,1e9), 
-                       c("Low","Medium","High"))
-AES_all$Cat_3KM <- cut(AES_all$AES3KM, 
-                       c(-1,500,5000,1e9), 
-                       c("Low","Medium","High"))
-
-#repeat for UKBMS
-
-ukbms_df2$Cat_1KM <- cut(ukbms_df2$AES1KM, 
-                        c(-1,500,5000,1e9), 
-                        c("Low","Medium","High"))
-ukbms_df2$Cat_3KM <- cut(ukbms_df2$AES3KM, 
-                        c(-1,500,5000,1e9), 
-                        c("Low","Medium","High"))
-
-#table of proportions
-Comb <- rbind(select(AES_all, AES1KM = Cat_1KM, AES3KM = Cat_3KM) %>%
-                mutate(Survey = "Whole countryside", value = 1),
-              select(ukbms_df2, AES1KM = Cat_1KM, AES3KM = Cat_3KM, value = 1) %>%
-                mutate(Survey = "UKBMS", value = 1)) %>%
-  count(Survey, AES1KM, AES3KM) %>%
-  group_by(Survey) %>%
-  mutate(prop = round(n/sum(n),3))
-
-#+ fig.width = 8, fig.height = 4  
-ggplot(na.omit(Comb), aes(x = AES1KM, y = AES3KM)) +
-  facet_wrap(~Survey) +
-  geom_tile(aes(fill = prop)) +
-  geom_text(aes(label = prop)) +
-  scale_fill_distiller(direction = 1, name = "proportion") +
-  coord_fixed()
-
-
-
-#' Overall UKBMS squares seem to cover all categories, and even have a higher proportion of High_Low squares than the national average. There is a higher proportion of squares in the high local categories than nationally.
-#' 
-
+#' Don't have the full England coverage of AES scores for 2021
 
 #' 
 #' 3. Evaluate whether AES gradients are confounded with habitat variables
 #' 
 #' Within the UKBMS data we might find that AES scores are highly correlated with other landscape or habitat variables. To assess this we will calculate Spearman rank correlations and plot the correlations
 #' 
-m1 <- round(cor(ukbms_df2[,c(17:24)], 
+m1 <- round(cor(ukbms_df2[,c(12:19)], 
                 use = "pairwise.complete.obs", 
                 method = "spearman"), 2)
 m1[upper.tri(m1)] <- ""
@@ -298,7 +193,7 @@ panel.cor <- function(x, y, ...){
   text(0.5, 0.5, txt)
 }
 
-pairs(ukbms_df2[,c(17:24)], upper.panel = panel.cor,
+pairs(ukbms_df2[,c(12:19)], upper.panel = panel.cor,
       col = "black", pch = 20)
 
 
@@ -315,19 +210,15 @@ ukbms_df2$SDA_cat <- cut(ukbms_df2$area_m_pc,
 
 #need to calculate SDA scores for all squares for comparison to whole countryside
 
-AES_all <- merge(AES_all, sda[,c(3,4,5)],
-                 by.x = "CELLCODE",
-                 by.y = "PLAN_NO", 
-                 all.x = TRUE)
+habitat_vars$area_m_pc <- sda$area_m_pc[match(habitat_vars$PLAN_NO, sda$PLAN_NO)]
 
-AES_all[is.na(AES_all$area_msq),c(7,8)] <- 0
-
-AES_all$SDA_cat <- cut(AES_all$area_m_pc,
+habitat_vars$area_m_pc[is.na(habitat_vars$area_m_pc)] <- 0
+habitat_vars$SDA_cat <- cut(habitat_vars$area_m_pc,
                        c(-1,50,101),
                        c("Lowland", "Upland"))
 
-sda_dat <- data.frame(SDA_cat = unlist(list(AES_all$SDA_cat, ukbms_df2$SDA_cat)),
-                      Dataset = c(rep("All 1km sqs", nrow(AES_all)), rep("UKBMS squares", nrow(ukbms_df2))))
+sda_dat <- data.frame(SDA_cat = unlist(list(habitat_vars$SDA_cat, ukbms_df2$SDA_cat)),
+                      Dataset = c(rep("All 1km sqs", nrow(habitat_vars)), rep("UKBMS squares", nrow(ukbms_df2))))
 
 ggplot(sda_dat, aes(fill = SDA_cat, x = Dataset))+
   geom_bar(position = "fill", stat = "count")+
@@ -339,7 +230,13 @@ ggplot(sda_dat, aes(fill = SDA_cat, x = Dataset))+
 #' 
 #' To do this we can map the locations to identify potential areas with low coverage
 #+ warning = FALSE
-locs <- st_as_sf(data.frame(ukbms_df2[,c(1:5)]), 
+
+library(rnrfa)
+
+ukbms_df2$Ecent <- osg_parse(ukbms_df2$GRIDREF_1KM)$easting + 500
+ukbms_df2$Ncent <- osg_parse(ukbms_df2$GRIDREF_1KM)$northing + 500
+
+locs <- st_as_sf(data.frame(ukbms_df2), 
                  coords = c("Ecent", "Ncent"))
 plot(st_geometry(locs), main = "UKBMS square locations", 
      pch = 20, cex = 0.7)
@@ -350,7 +247,7 @@ plot(ENG,  add = TRUE)
 #'#' 
 #' We can also look at whether there are any obvious patterns in the AES scores across the country. A simple way to do this is to look for correlations between the AES gradients and Eastings and Northings. This won't pick up more subtle regional patterns but would pick up if e.g. all the squares with high local AES were in the south.
 #' 
-pairs(ukbms_df2[,c(3,4,17,18)], upper.panel = panel.cor, labels = c("Easting", "Northing", "AES 1km", "AES 3km"))
+pairs(ukbms_df2[,c(23,24,12,13)], upper.panel = panel.cor, labels = c("Easting", "Northing", "AES 1km", "AES 3km"))
 
 #' Some indication that squares with very high local AES tend to be in the south, but overall no strong correlations.
 
