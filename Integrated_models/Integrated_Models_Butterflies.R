@@ -984,3 +984,67 @@ ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) +
   NULL
 
 ggsave("report/Butterfly diversity 1km x 3km integrated model random slope.png", height = 800, width = 1400, units = "mm", scale = 0.15)
+
+
+# Bayesian models using stan through brms ####
+library(brms)
+
+# set up fake data
+dat <- data.frame(Richness = rpois(100,1), 
+                  AES1KM = runif(100), AES3KM = runif(100), 
+                  climate = rnorm(100), habitat = rnorm(100), 
+                  Year = rep(2015:2019, 20), 
+                  Square = rep(LETTERS[1:20],each=5), 
+                  SURVEY = rep(c("S1","S2"),each=50))
+dat$YRnm <- dat$Year-2014
+dat$YEAR <- as.character(dat$Year)
+
+# Model with effect of AES varying by survey, plus autoregressive effect on square:
+# set prior
+get_prior(Richness ~ AES1KM * AES3KM + climate + habitat + YEAR +
+            (AES1KM*AES3KM|SURVEY) + ar(time = YRnm, gr = Square),
+          data = dat)
+
+mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
+  prior(student_t(3,0,1), class = sd) + # prior for random effects
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+  prior(lkj(1), class = cor) + # prior for correlation between AES random effects
+  prior(uniform(-1,1), class = ar, lb = -1, ub = 1) + # uniform prior on the autoregressive parameter
+  prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
+
+bmod <- brm(Richness ~ AES1KM * AES3KM + climate + habitat + YEAR +
+              (AES1KM*AES3KM|SURVEY) + ar(time = YRnm, gr = Square),
+            data = dat, prior = mod_pr, family = "negbinomial",
+            cores = 4)
+summary(bmod)
+plot(bmod)
+plot(conditional_effects(bmod, effects = "AES1KM:AES3KM",
+                         int_conditions = list(AES3KM = c(0.25,0.5,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic())
+  
+
+# Model with effect of AES varying by survey, plus random effect on square:
+dat$Diversity <- rnorm(100)
+# set prior
+get_prior(Richness ~ AES1KM * AES3KM + climate + habitat + YEAR +
+            (AES1KM*AES3KM|SURVEY) + (1|Square),
+          data = dat)
+
+mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
+  prior(student_t(3,0,1), class = sd) + # prior for random effects
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+  prior(lkj(1), class = cor) + # prior for correlation between AES random effects
+  prior(student_t(3,0,3), class = sigma) # prior for sd of normal distribution
+
+bmod <- brm(Diversity ~ AES1KM * AES3KM + climate + habitat + YEAR +
+              (AES1KM*AES3KM|SURVEY) + (1|Square),
+            data = dat, prior = mod_pr, family = "gaussian")
+summary(bmod)
+plot(bmod)
+plot(conditional_effects(bmod, effects = "AES1KM:AES3KM",
+                         int_conditions = list(AES3KM = c(0.25,0.5,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic())
