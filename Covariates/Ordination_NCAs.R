@@ -266,6 +266,12 @@ dev.off()
 
 #ordination 3 - habitat
 
+
+
+######NEED TO UPDATE#######
+
+###ADD COMPOSIITIONAL ANALYSIS####
+
 hab_vars <- ord_locs[,c(1,8:14)]
 
 hab_pca <- prcomp(hab_vars[,2:8], scale = TRUE)
