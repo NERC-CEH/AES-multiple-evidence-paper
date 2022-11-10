@@ -7,7 +7,8 @@ library(ggcorrplot)
 #' 
 #' set path to landscape and env data
 #' 
-fpath <- config_path
+dir <- config::get()
+fpath <- dir$directories$envdata
 #' 
 #' 
 #' ## 1km square level data:
@@ -20,35 +21,22 @@ mean_elev <- read.csv(paste0(fpath, "IHDTM_1km/elevation_1km.csv"))
 #' 
 SD_elev <- read.csv(paste0(fpath, "IHDTM_1km/elevation_sd_1km.csv"))
 #' 
-#' Mean rainfall
-#' 
-mean_rain <- read.csv(paste0(fpath, "CHESSMET_2011_to_2015_1km/rain_mean_1km.csv"))
-#' 
-#' SD rainfall
-#' 
-SD_rain <- read.csv(paste0(fpath, "CHESSMET_2011_to_2015_1km/rain_sd_1km.csv"))
-#' 
-#' Mean temperature
-#' 
-mean_temp <- read.csv(paste0(fpath, "CHESSMET_2011_to_2015_1km/temp_mean_1km.csv"))
-#' 
-#' SD temperature
-#' 
-SD_temp <- read.csv(paste0(fpath, "CHESSMET_2011_to_2015_1km/temp_sd_1km.csv"))
+#' Climate
+#'
+climate <- read.csv(paste0(fpath,"HADUK/HADUK_Rain_Temp_Summaries.csv"))
 #' 
 #' Cover LCM (separate file per year)
 #' 
 LCM17 <- read.csv(paste0(fpath, "LCM/lcm17_1km.csv"))
 LCM18 <- read.csv(paste0(fpath, "LCM/lcm18_1km.csv"))
 LCM19 <- read.csv(paste0(fpath, "LCM/lcm19_1km.csv"))
+LCM21 <- read.csv(paste0(fpath, "LCM/lcm21_1km.csv"))
 #' 
-#' Area SDA land
-#' 
-SDA <- read.csv(paste0(fpath, "LFA/sda_1km.csv"))
+
 #'
 #' Length of hedgerows - note now does not include 0 lengths
 #' 
-hedges_old <- read.csv(paste0(fpath, "Hedgerows/hedge_df_1km.csv"))
+#hedges_old <- read.csv(paste0(fpath, "Hedgerows/hedge_df_1km.csv"))
 hedges <- read.csv(paste0(fpath, "Hedgerows/wlf_df_1km.csv"))
 #' 
 #' Slope
@@ -63,11 +51,6 @@ aspect_south <- read.csv(paste0(fpath, "IHDTM_1km/southness_1km.csv"))
 #' 
 aspect_east <- read.csv(paste0(fpath, "IHDTM_1km/eastness_1km.csv"))
 #' 
-#' Crop map (separate file per year)
-#' 
-crop17 <- read.csv(paste0(fpath, "Crop_map/crop17_1km.csv"))
-crop18 <- read.csv(paste0(fpath, "Crop_map/crop18_1km.csv"))
-crop19 <- read.csv(paste0(fpath, "Crop_map/crop19_1km.csv"))
 #' 
 #' Parent material
 #' 
@@ -75,7 +58,7 @@ soils <- read.csv(paste0(fpath, "SoilParentMaterial_V1_portal1km/soilparent_1km.
 #' 
 #' NCAs
 #' 
-NCAs <- read.csv(paste0(fpath, "NCAs/nca_1km_dom.csv"))
+#NCAs <- read.csv(paste0(fpath, "NCAs/nca_1km_dom.csv"))
 #' 
 #' 
 
@@ -90,34 +73,24 @@ lcm_extract <- function(x, hab_name){
   x17 <- LCM17[LCM17$gridcode %in% x,]
   x18 <- LCM18[LCM18$gridcode %in% x,]
   x19 <- LCM19[LCM19$gridcode %in% x,]
+  x21 <- LCM21[LCM21$gridcode %in% x,]
   if(length(x) > 1){
     x17 <- aggregate(cbind(area_msq, area_m_pc) ~ PLAN_NO, FUN = sum, data = x17)
     x18 <- aggregate(cbind(area_msq, area_m_pc) ~ PLAN_NO, FUN = sum, data = x18)
     x19 <- aggregate(cbind(area_msq, area_m_pc) ~ PLAN_NO, FUN = sum, data = x19)
+    x21 <- aggregate(cbind(area_msq, area_pc) ~ PLAN_NO, FUN = sum, data = x21)
   }
-  xall <- Reduce(function(...) merge(..., by = "PLAN_NO", all = TRUE), list(x17, x18, x19))
+  names(x17)[grep("area", names(x17))] <- paste0(names(x17)[grep("area", names(x17))], "_17")
+  names(x18)[grep("area", names(x18))] <- paste0(names(x18)[grep("area", names(x18))], "_18")
+  names(x19)[grep("area", names(x19))] <- paste0(names(x19)[grep("area", names(x19))], "_19")
+  names(x21)[grep("area", names(x21))] <- paste0(names(x21)[grep("area", names(x21))], "_21")
+  xall <- Reduce(function(...) merge(..., by = "PLAN_NO", all = TRUE), list(x17, x18, x19, x21))
   xall[is.na(xall)] <- 0
-  xmean <- data.frame(PLAN_NO = xall$PLAN_NO, mean = rowMeans(xall[,grepl("area_msq", names(xall))]), area17 = xall$area_msq.x, area18 = xall$area_msq.y, area19 = xall$area_msq)
-  names(xmean) <- c("PLAN_NO", hab_name, paste0(hab_name, "17"), paste0(hab_name, "18"), paste0(hab_name, "19"))
+  xmean <- data.frame(PLAN_NO = xall$PLAN_NO, mean = rowMeans(xall[,grepl("area_msq", names(xall))]), area17 = xall$area_msq_17, area18 = xall$area_msq_18, area19 = xall$area_msq_19, area21 = xall$area_msq_21)
+  names(xmean) <- c("PLAN_NO", hab_name, paste0(hab_name, "17"), paste0(hab_name, "18"), paste0(hab_name, "19"), paste0(hab_name, "21"))
   return(xmean)
 }
 
-# function to extract from crop map - currently excludes 2018 as missing area data
-crop_extract <- function(x, crop_name){
-  x17 <- crop17[crop17$crop2017 %in% x,]
-  x18 <- crop18[crop18$crop2018 %in% x,]
-  x19 <- crop19[crop19$crop2019 %in% x,]
-  if(length(x) > 1){
-    x17 <- aggregate(cbind(area_msq, area_m_pc) ~ PLAN_NO, FUN = sum, data = x17)
-    x18 <- aggregate(cbind(area_msq, area_m_pc) ~ PLAN_NO, FUN = sum, data = x18)
-    x19 <- aggregate(cbind(area_msq, area_m_pc) ~ PLAN_NO, FUN = sum, data = x19)
-  }
-  xall <- Reduce(function(...) merge(..., by = "PLAN_NO", all = TRUE), list(x17, x18, x19))
-  xall[is.na(xall)] <- 0
-  xmean <- data.frame(PLAN_NO = xall$PLAN_NO, area_msq = rowMeans(xall[,grepl("area_msq", names(xall))]), area17 = xall$area_msq.x, area18 = xall$area_msq.y, area19 = xall$area_msq)
-  names(xmean) <- c("PLAN_NO", crop_name, paste0(crop_name, "17"), paste0(crop_name, "18"), paste0(crop_name, "19"))
-  return(xmean)
-}
 
 #' Arable
 #' 
@@ -135,21 +108,9 @@ coniferous <- lcm_extract(2, "Coniferous")
 #' 
 imp_grass <- lcm_extract(4, "ImpGrass")
 #' 
-#' Semi-natural grassland
+#' Semi-natural grassland - removed heather and heather grassland
 #' 
-sn_grass <- lcm_extract(c(6,5,8,10,9), "SNGrass")
-#'
-#' Calcareous and neutral grassland
-#'
-calcneut_grass <- lcm_extract(c(5,6), "CalcNeutGrass")
-#'
-#' Fen marsh swamp
-#'
-fenmarshswamp <- lcm_extract(8, "FenMarshSwamp")
-#'
-#' Heather grassland + heather
-#'
-heath <- lcm_extract(c(9,10), "HeathGrass")
+sn_grass <- lcm_extract(c(6,5,8), "SNGrass")
 #'
 #' Mountain bog heath
 #' 
@@ -159,25 +120,6 @@ mbh <- lcm_extract(c(9,10,11,12), "MBH")
 #' 
 coastal <- lcm_extract(c(15,16,17,18,19), "Coastal")
 #' 
-#' Area OSR + field beans + beet + potatoes
-#' 
-OFBP <- crop_extract(c("or", "fb", "be", "po"), "OFBP")
-#' 
-#' Area of spring cereals
-#' 
-spring_cereals <- crop_extract(c("sb", "sw"), "SpringCereals")
-#' 
-#' Area of winter cereals
-#' 
-winter_cereals <- crop_extract(c("ww", "wb", "wo"), "WinterCereals")
-#' 
-#' Area of maize
-#' 
-maize <- crop_extract(c("ma"), "Maize")
-#' 
-#' Area of broadleaved crops
-#' 
-broadleaf_crops <- crop_extract(c("fb", "po", "or", "be", "pe"), "BroadleafCrops")
 #' 
 #' Calcium carbonate content
 #' 
