@@ -180,6 +180,14 @@ ord_locs <- cbind(data.frame(ID = paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep =
 
 ## Ordination at square level to enable use of PCA scores in models ##
 
+#extract axis variance
+pca_importance <- function(x) {
+  vars <- x$sdev^2
+  vars <- vars/sum(vars)
+  rbind(`Standard deviation` = x$sdev, `Proportion of Variance` = vars, 
+        `Cumulative Proportion` = cumsum(vars))
+}
+
 #ordination 1 - climate
 
 clim_vars <- ord_locs[,c(1:7)]
@@ -196,15 +204,6 @@ clim_scores <- cbind(clim_vars$ID, clim_pca$x)
 #extract PCA loadings
 clim_load <- clim_pca$rotation
 
-
-#extract axis variance
-pca_importance <- function(x) {
-  vars <- x$sdev^2
-  vars <- vars/sum(vars)
-  rbind(`Standard deviation` = x$sdev, `Proportion of Variance` = vars, 
-        `Cumulative Proportion` = cumsum(vars))
-}
-
 pca_importance(clim_pca)
 
 
@@ -213,24 +212,97 @@ png("Climate PCA biplot.png", height = 120, width = 120, units = "mm", res = 300
 plot(clim_pca$x[,1], clim_pca$x[,2], pch = 20, col = "grey65", xlab = "PCA Axis 1 (61%)", ylab = "PCA Axis 2 (26%)", xlim = c(-15,10), ylim = c(-6,6))
 
 scale <- 1
-
 lam <- (clim_pca$sdev[1:2]*sqrt(nrow(clim_vars)))^scale
-
 len <- t(t(clim_pca$rotation[, 1:2]) * lam)*0.05
 
-
-#toplot <- c(22,13,1,2,3,4,17,15,12,5,14,28,6)
 toplot <- 1:nrow(len)
-
-#row.names(len)[toplot] <- c("MeanAlt", "MeanPrec","MeanTemp","Moor and bog","Coastal","Birds","Broadleaf", "Arable","Area","Butterflies")
 
 mapply(function(x,y) arrows(0, 0, x, y, col = "blue", length = .1),
        len[toplot,1], len[toplot,2])
-
 textpos <- t(t(clim_pca$rotation[, 1:2]) * lam)*0.06
-
 text(textpos[toplot,1], textpos[toplot,2], labels = row.names(len)[toplot], font = 2)
 
 dev.off()
 
 
+#ordination 2 - landscape
+
+land_vars <- ord_locs[,c(1,8:14)]
+
+land_pca <- prcomp(land_vars[,2:8], scale = TRUE)
+
+summary(land_pca)
+biplot(land_pca)
+
+
+#extract PCA scores per square
+land_scores <- cbind(land_vars$ID, land_pca$x)
+
+#extract PCA loadings
+land_load <- land_pca$rotation
+
+pca_importance(land_pca)
+
+
+png("Landscape PCA biplot.png", height = 120, width = 120, units = "mm", res = 300, pointsize = 8)
+
+plot(land_pca$x[,1], land_pca$x[,2], pch = 20, col = "grey65", xlab = "PCA Axis 1 (30%)", ylab = "PCA Axis 2 (16%)", ylim = c(-4,6))
+
+scale <- 1
+lam <- (land_pca$sdev[1:2]*sqrt(nrow(land_vars)))^scale
+len <- t(t(land_pca$rotation[, 1:2]) * lam)*0.05
+
+toplot <- 1:nrow(len)
+
+mapply(function(x,y) arrows(0, 0, x, y, col = "blue", length = .1),
+       len[toplot,1], len[toplot,2])
+textpos <- t(t(land_pca$rotation[, 1:2]) * lam)*0.06
+text(textpos[toplot,1], textpos[toplot,2], labels = row.names(len)[toplot], font = 2)
+
+dev.off()
+
+
+
+
+#ordination 3 - habitat
+
+hab_vars <- ord_locs[,c(1,8:14)]
+
+hab_pca <- prcomp(hab_vars[,2:8], scale = TRUE)
+
+summary(hab_pca)
+biplot(hab_pca)
+
+
+#extract PCA scores per square
+hab_scores <- cbind(hab_vars$ID, hab_pca$x)
+
+#extract PCA loadings
+hab_load <- hab_pca$rotation
+
+pca_importance(hab_pca)
+
+
+png("Habitat PCA biplot.png", height = 120, width = 120, units = "mm", res = 300, pointsize = 8)
+
+plot(hab_pca$x[,1], hab_pca$x[,2], pch = 20, col = "grey65", xlab = "PCA Axis 1 (30%)", ylab = "PCA Axis 2 (16%)", ylim = c(-4,6))
+
+scale <- 1
+lam <- (hab_pca$sdev[1:2]*sqrt(nrow(hab_vars)))^scale
+len <- t(t(hab_pca$rotation[, 1:2]) * lam)*0.05
+
+toplot <- 1:nrow(len)
+
+mapply(function(x,y) arrows(0, 0, x, y, col = "blue", length = .1),
+       len[toplot,1], len[toplot,2])
+textpos <- t(t(hab_pca$rotation[, 1:2]) * lam)*0.06
+text(textpos[toplot,1], textpos[toplot,2], labels = row.names(len)[toplot], font = 2)
+
+dev.off()
+
+
+
+### checks
+
+#correlation of first 3 PCA axes from climate and land PCAs
+cor(clim_pca$x[,1:3], land_pca$x[,1:3])
