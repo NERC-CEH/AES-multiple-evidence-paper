@@ -24,6 +24,19 @@ SD_elev <- read.csv(paste0(fpath, "IHDTM_1km/elevation_sd_1km.csv"))
 #' Climate
 #'
 climate <- read.csv(paste0(fpath,"HADUK/HADUK_Rain_Temp_Summaries.csv"))
+
+#need to add the 1km grid refs to climate data to allow matching to other datasets, have to do this via the ukbms site info
+#also need the scores
+fpath_ukbms <- dir$directories$ukbmsdata
+wcbs_ukbms <- read.table(paste0(fpath_ukbms, "site_date_2017-2021.txt"), sep = "\t", header = TRUE)
+fpath_scores <- dir$directories$scoredata
+CSlocs <- read.csv(paste0(fpath_scores, "Butts_Gradient_Scores.csv"))
+
+climate$SITENO <- wcbs_ukbms$SITENO[match(climate$GRIDREF, wcbs_ukbms$GRIDREF)]
+climate$PLAN_NO <- CSlocs$CELLCODE[match(climate$SITENO, CSlocs$buttsurv.SITENO)]
+climate$PLAN_NO[is.na(climate$PLAN_NO)] <- climate$GRIDREF[is.na(climate$PLAN_NO)]
+
+
 #' 
 #' Cover LCM (separate file per year)
 #' 
@@ -138,7 +151,9 @@ soil_vars <- soils[,c(12:14)]
 
 #join all datasets
 
-all_vars <- Reduce(function(...) merge(..., by = "PLAN_NO"), list(NCAs, mean_elev[,2:3], SD_elev[,2:3], mean_rain[,2:3], SD_rain[,2:3], mean_temp[,2:3], SD_temp[,2:3],  slope[,2:3], aspect_south[,2:3], aspect_east[,2:3], soil_vars))
+all_vars <- Reduce(function(...) merge(..., by = "PLAN_NO"), 
+                   list(NCAs, mean_elev[,2:3], SD_elev[,2:3], mean_rain[,2:3], SD_rain[,2:3], mean_temp[,2:3], 
+                        SD_temp[,2:3],  slope[,2:3], aspect_south[,2:3], aspect_east[,2:3], soil_vars))
 
 all_vars <- all_vars[complete.cases(all_vars),]
 
