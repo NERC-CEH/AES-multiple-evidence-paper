@@ -2,6 +2,7 @@
 #' 
 library(readxl)
 library(ggcorrplot)
+library(compositions)
 
 #' ## Collate data
 #' 
@@ -267,17 +268,19 @@ dev.off()
 #ordination 3 - habitat
 
 
+hab_vars <- ord_locs[,c(1,15:22)]
 
-######NEED TO UPDATE#######
+#where habitat is 0, add tiny value. Leave hedges untransformed...hedges don't need to add to 1
 
-###ADD COMPOSIITIONAL ANALYSIS####
+hab_vars[,3:9][hab_vars[,3:9] == 0] <- 0.001
 
-hab_vars <- ord_locs[,c(1,8:14)]
+hab_vars[,3:9] <- clr(hab_vars[,3:9])
 
-hab_pca <- prcomp(hab_vars[,2:8], scale = TRUE)
+hab_pca <- prcomp(hab_vars[,2:9], scale = TRUE) #still scaling as hedges on different scale
 
 summary(hab_pca)
 biplot(hab_pca)
+
 
 
 #extract PCA scores per square
@@ -291,7 +294,7 @@ pca_importance(hab_pca)
 
 png("Habitat PCA biplot.png", height = 120, width = 120, units = "mm", res = 300, pointsize = 8)
 
-plot(hab_pca$x[,1], hab_pca$x[,2], pch = 20, col = "grey65", xlab = "PCA Axis 1 (30%)", ylab = "PCA Axis 2 (16%)", ylim = c(-4,6))
+plot(hab_pca$x[,1], hab_pca$x[,2], pch = 20, col = "grey65", xlab = "PCA Axis 1 (26%)", ylab = "PCA Axis 2 (20%)", ylim = c(-5,6), xlim = c(-6,6))
 
 scale <- 1
 lam <- (hab_pca$sdev[1:2]*sqrt(nrow(hab_vars)))^scale
@@ -310,5 +313,11 @@ dev.off()
 
 ### checks
 
-#correlation of first 3 PCA axes from climate and land PCAs
+#correlation of first 3 PCA axes from climate and land PCAs - all fine
 cor(clim_pca$x[,1:3], land_pca$x[,1:3])
+
+#correlation of first 3 PCA axes from climate and habitat PCAs - all fine
+cor(clim_pca$x[,1:3], hab_pca$x[,1:3])
+
+#correlation of first 3 PCA axes from habitat and land PCAs - all fine
+cor(hab_pca$x[,1:3], land_pca$x[,1:3])
