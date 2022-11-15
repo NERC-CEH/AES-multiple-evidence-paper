@@ -36,12 +36,26 @@ dir <- config::get()
 cpath <- dir$directories$climatedata
 files <- list.files(cpath)
 scpath <- dir$directories$scoredata
+cspath <- dir$directories$climatesummarydata
 
 # Get the location data for all sites
 # UKBMS and WCBS
 fpath <- dir$directories$ukbmsdata
 wcbs_ukbms <-  read.table(paste0(fpath, "site_date_2017-2021.txt"), sep = "\t", 
                           header = TRUE)
+# fix gridref to be same level of accuracy
+wcbs_ukbms <- wcbs_ukbms %>%
+  mutate(EAST = 1000*floor(EAST/1000),
+         NORTH = 1000*floor(NORTH/1000),
+         GRIDREF = case_when(
+           nchar(GRIDREF) == 6 ~ GRIDREF,
+           nchar(GRIDREF) == 8 ~ paste0(substring(GRIDREF, 1,4),
+                                        substring(GRIDREF,6,7)),
+           nchar(GRIDREF) == 10 ~ paste0(substring(GRIDREF, 1,4),
+                                         substring(GRIDREF,7,8)),
+           nchar(GRIDREF) == 12 ~ paste0(substring(GRIDREF, 1,4),
+                                         substring(GRIDREF,8,9)))) %>%
+  distinct()
 
 # LandSpAES
 db <- config::get("AES")
@@ -59,10 +73,14 @@ landspaes_year <- data.frame(GRIDREF = rep(landspaes_loc$GRIDREF, each = 5),
 # Combine sites into one data frame
 full_data_year <- landspaes_loc %>%
   full_join(landspaes_year, by="GRIDREF") %>%
-  full_join(select(wcbs_ukbms,  GRIDREF, SCHEME, EAST, NORTH, YEAR))
+  full_join(select(wcbs_ukbms,  GRIDREF, SCHEME, EAST, NORTH, YEAR)) %>%
+  select(-SCHEME) %>%
+  distinct() %>%
+  mutate(EAST = EAST + 500,
+         NORTH = NORTH + 500)
 
 # Turn into spatial object using sf
-all_sites <- select(full_data_year, SCHEME, GRIDREF, EAST, NORTH) %>%
+all_sites <- select(full_data_year, GRIDREF, EAST, NORTH) %>%
   distinct() %>%
   st_as_sf(coords = c("EAST","NORTH"), crs = 27700)
 
@@ -289,7 +307,7 @@ temp_summary <- full_join(temp_summary[[1]],temp_summary[[2]]) %>%
 # Combine rainfall and temperature data into one climate summary file
 climdata <- full_join(rain_summary,temp_summary)
 
-write.csv(climdata,paste0(scpath,"HADUK_Rain_Temp_Summaries.csv"),
+write.csv(climdata,paste0(cspath,"HADUK_Rain_Temp_Summaries.csv"),
           row.names = FALSE)
 
 # Checks:
@@ -309,7 +327,11 @@ climdata %>% ungroup%>% group_by(GRIDREF) %>% count() %>% ungroup %>% count(n)
 wcbs_ukbms$GRIDREF[!(wcbs_ukbms$GRIDREF %in% climdata$GRIDREF)]
 # Yes - compare to AES scores and see if those squares are also missing there
 AES <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
-filter(AES, GRIDREF %in% c("TA406116", "TA399109"))
+filter(AES, buttsurv.GRIDREF_1km %in% c("TA4011", "TA3910"))
 # No AES scores for these squares, and looking at them on the map indicates they are
 # outside of England as on thin peninsula - assume acceptable for these to be missing
 # from climate data
+
+# check to see if there's any more missing that are in AES
+AES$buttsurv.GRIDREF_1km[!AES$buttsurv.GRIDREF_1km %in% climdata$GRIDREF]
+# only the peninsula ones
