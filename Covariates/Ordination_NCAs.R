@@ -26,18 +26,6 @@ SD_elev <- read.csv(paste0(fpath, "IHDTM_1km/elevation_sd_1km.csv"))
 #'
 climate <- read.csv(paste0(fpath,"HADUK/HADUK_Rain_Temp_Summaries.csv"))
 
-#need to add the 1km grid refs to climate data to allow matching to other datasets, have to do this via the ukbms site info
-#also need the scores
-fpath_ukbms <- dir$directories$ukbmsdata
-wcbs_ukbms <- read.table(paste0(fpath_ukbms, "site_date_2017-2021.txt"), sep = "\t", header = TRUE)
-fpath_scores <- dir$directories$scoredata
-CSlocs <- read.csv(paste0(fpath_scores, "Butts_Gradient_Scores.csv"))
-
-climate$SITENO <- wcbs_ukbms$SITENO[match(climate$GRIDREF, wcbs_ukbms$GRIDREF)]
-climate$PLAN_NO <- CSlocs$CELLCODE[match(climate$SITENO, CSlocs$buttsurv.SITENO)]
-climate$PLAN_NO[is.na(climate$PLAN_NO)] <- climate$GRIDREF[is.na(climate$PLAN_NO)]
-
-
 #' 
 #' Cover LCM (separate file per year)
 #' 
@@ -159,16 +147,15 @@ all_vars <- all_vars[complete.cases(all_vars),]
 all_vars2 <- Reduce(function(...) merge(..., by = "PLAN_NO", all.x = TRUE), list(all_vars, hedges[,2:3])) 
   
 #subset already to considered locations
-all_locs <- merge(climate, all_vars2, all.x= TRUE, by = "PLAN_NO")
+all_locs <- merge(climate, all_vars2, all.x= TRUE, by.x = "GRIDREF", by.y = "PLAN_NO")
 
-all_locs2 <- Reduce(function(...) merge(..., by = c("PLAN_NO", "YEAR"), all.x = TRUE), list(all_locs, arable, broadleaved, coniferous, imp_grass, sn_grass, mbh, coastal))        
+all_locs2 <- Reduce(function(...) merge(..., by.x = c("GRIDREF", "YEAR"), by.y = c("PLAN_NO", "YEAR"), all.x = TRUE), list(all_locs, arable, broadleaved, coniferous, imp_grass, sn_grass, mbh, coastal))        
              
 #remove 2020 rows
 all_locs2 <- all_locs2[all_locs2$YEAR != 2020,]
                                                                        
 
-names(all_locs2)[11:18] <- c("Elevation", "SDElevation", "Slope", "Southness", "Eastness", "CalcCarb", "GrainSize", "Hedges")
-all_locs2 <- all_locs2[,c(1,2,4:9,11:25)]
+names(all_locs2)[9:16] <- c("Elevation", "SDElevation", "Slope", "Southness", "Eastness", "CalcCarb", "GrainSize", "Hedges")
 
 #replace NA with zero for hedge length and habitat coverage
 all_locs2[,16:23][is.na(all_locs2[,16:23])] <- 0
@@ -176,7 +163,7 @@ all_locs2[,16:23][is.na(all_locs2[,16:23])] <- 0
 #remove missing DTM and soil values
 all_locs2 <- all_locs2[complete.cases(all_locs2),]
 
-ord_locs <- cbind(data.frame(ID = paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep = "_")),all_locs2[3:23])
+ord_locs <- cbind(data.frame(ID = paste(all_locs2$GRIDREF, all_locs2$YEAR, sep = "_")),all_locs2[3:23])
 
 
 ## Ordination at square level to enable use of PCA scores in models ##
@@ -327,9 +314,9 @@ cor(hab_pca$x[,1:3], land_pca$x[,1:3])
 
 #check rows in correct order for all PCAs
 
-any(paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep = "_") != clim_scores[,1])
-any(paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep = "_") != land_scores[,1])
-any(paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep = "_") != hab_scores[,1])
+any(paste(all_locs2$GRIDREF, all_locs2$YEAR, sep = "_") != clim_scores[,1])
+any(paste(all_locs2$GRIDREF, all_locs2$YEAR, sep = "_") != land_scores[,1])
+any(paste(all_locs2$GRIDREF, all_locs2$YEAR, sep = "_") != hab_scores[,1])
 
 
 all_locs3 <- cbind(all_locs2, clim_scores[,2:4])
