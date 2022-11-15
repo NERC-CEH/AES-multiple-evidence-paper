@@ -321,3 +321,31 @@ cor(clim_pca$x[,1:3], hab_pca$x[,1:3])
 
 #correlation of first 3 PCA axes from habitat and land PCAs - all fine
 cor(hab_pca$x[,1:3], land_pca$x[,1:3])
+
+
+#pull out top 3 axes from each PCA into dataframe
+
+#check rows in correct order for all PCAs
+
+any(paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep = "_") != clim_scores[,1])
+any(paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep = "_") != land_scores[,1])
+any(paste(all_locs2$PLAN_NO, all_locs2$YEAR, sep = "_") != hab_scores[,1])
+
+
+all_locs3 <- cbind(all_locs2, clim_scores[,2:4])
+names(all_locs3)[(ncol(all_locs3)-2):ncol(all_locs3)] <- paste("Climate",names(all_locs3)[(ncol(all_locs3)-2):ncol(all_locs3)], 
+                                                               sep = "_")
+all_locs3 <- cbind(all_locs3, land_scores[,2:4])
+names(all_locs3)[(ncol(all_locs3)-2):ncol(all_locs3)] <- paste("Landscape",names(all_locs3)[(ncol(all_locs3)-2):ncol(all_locs3)], 
+                                                               sep = "_")
+all_locs3 <- cbind(all_locs3, hab_scores[,2:4])
+names(all_locs3)[(ncol(all_locs3)-2):ncol(all_locs3)] <- paste("Habitat",names(all_locs3)[(ncol(all_locs3)-2):ncol(all_locs3)], 
+                                                               sep = "_")
+
+#change from character to numeric
+all_locs3[(ncol(all_locs3)-8):ncol(all_locs3)] <- sapply(all_locs3[(ncol(all_locs3)-8):ncol(all_locs3)], as.numeric)
+
+#PCA output
+PCA_out <- all_locs3[,c(1,2,24:32)]
+
+write.csv(PCA_out, "PCA scores for CS and LandSpAES squares.csv")
