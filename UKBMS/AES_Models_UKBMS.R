@@ -16,8 +16,7 @@ pcapath <- dir$directories$pcadata
 
 #' PCA scores
 PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
-  select(-X) %>%
-  distinct()
+  select(-X)
 
 #' AES scores
 AES <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
@@ -44,7 +43,7 @@ ukbms_aes <- AES %>%
 
 #' Combine all data
 UKBMS_all_data <- UKBMS_RESPONSES %>%
-  inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "PLAN_NO","YEAR")) %>%
+  inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "GRIDREF","YEAR")) %>%
   left_join(ukbms_aes, by = c("buttsurv.GRIDREF_1km" = "CELLCODE","YEAR" = "Year")) %>%
   ungroup() %>%
   filter(AES1KM < 50000) %>%
@@ -93,7 +92,7 @@ Rich_ukbms_mod2 <- brm(Richness ~ AES1KM*AES3KM +
                       cores = 4)
 summary(Rich_ukbms_mod2)
 pp_check(Rich_ukbms_mod2)
-# no improvement in fit to data, shape parameter 1452 +/- 279
+# no improvement in fit to data, shape parameter 1395 +/- 265
 
 
 #' ### Abundance models
@@ -107,7 +106,10 @@ Abun_ukbms_mod <- brm(Abundance ~ AES1KM*AES3KM +
                         (1|SITENO),
                       data = UKBMS_all_data, family = "poisson", prior = mod_pr,
                       cores = 4)
-# does not converge - site effect Rhat 1.46, plus various fixed effects Rhat > 1.2
+summary(Abun_ukbms_mod)
+# does not converge - site effect Rhat 1.33, plus intercept 1.56 and transect length
+# 1.81
+
 # negative binomial - with site RE
 Abun_ukbms_mod <- brm(Abundance ~ AES1KM*AES3KM + 
                         N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW + YR +
@@ -158,3 +160,51 @@ pp_check(Div_ukbms_mod) # much better fit to data
 plot(conditional_effects(Div_ukbms_mod, effects = "AES1KM:AES3KM",
                          int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
      rug = TRUE, theme = ggplot2::theme_classic())
+
+# test
+Div_ukbms_mod3 <- brm(expDiversity ~ AES1KM*AES3KM, #+ 
+                       # N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW + YR +
+                       # Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
+                       # (1|SITENO),
+                     data = UKBMS_all_data, prior = prior(normal(0,1), class = b),
+                     cores = 4)
+summary(Div_ukbms_mod3)
+plot(conditional_effects(Div_ukbms_mod3, effects = "AES1KM:AES3KM",
+                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(), points = TRUE)
+
+Div_ukbms_mod4 <- brm(expDiversity ~ AES1KM*AES3KM + 
+                      N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW + YR +
+                      Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
+                      (1|SITENO),
+                      data = filter(UKBMS_all_data, YEAR < 2020), prior = mod_pr,
+                      cores = 4)
+summary(Div_ukbms_mod4)
+plot(conditional_effects(Div_ukbms_mod4, effects = "AES1KM:AES3KM",
+                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(), points = TRUE)
+
+
+Div_ukbms_mod5 <- brm(expDiversity ~ AES1KM*AES3KM, #+ 
+                      # N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW + YR +
+                      # Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
+                      # (1|SITENO),
+                      data = filter(UKBMS_all_data, YEAR < 2020), 
+                      prior = prior(normal(0,1), class = b),
+                      cores = 4)
+summary(Div_ukbms_mod5)
+plot(conditional_effects(Div_ukbms_mod5, effects = "AES1KM:AES3KM",
+                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(), points = TRUE)
+
+Div_ukbms_mod6 <- brm(expDiversity ~ AES1KM*AES3KM + 
+                      N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW + YR +
+                      # Climate_PC1 + Landscape_PC1 + Habitat_PC1,# +
+                      (1|SITENO),
+                      data = filter(UKBMS_all_data, YEAR < 2020), 
+                      prior = prior(normal(0,1), class = b),
+                      cores = 4)
+summary(Div_ukbms_mod6)
+plot(conditional_effects(Div_ukbms_mod6, effects = "AES1KM:AES3KM",
+                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(), points = TRUE)
