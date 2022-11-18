@@ -4,3 +4,7 @@
 .Ruserdata
 *.Rproj
 config.yml
+*.csv
+*.png
+*.db
+/Data/
