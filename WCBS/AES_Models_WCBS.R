@@ -14,8 +14,7 @@ pcapath <- dir$directories$pcadata
 
 #' PCA scores
 PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
-  select(-X) %>%
-  distinct()
+  select(-X)
 
 #' AES scores
 AES <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
@@ -42,7 +41,7 @@ wcbs_aes <- AES %>%
 
 #' Combine all data and scale
 WCBS_all_data <- wcbs_responses %>%
-  inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "PLAN_NO","YEAR")) %>%
+  inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "GRIDREF","YEAR")) %>%
   inner_join(wcbs_aes, by = c("buttsurv.GRIDREF_1km" = "CELLCODE","YEAR")) %>%
   ungroup() %>% 
   filter(AES1KM < 50000) %>%
@@ -103,7 +102,7 @@ Rich_wcbs_mod2 <- brm(Richness ~ AES1KM*AES3KM +
 summary(Rich_wcbs_mod2)
 plot(Rich_wcbs_mod2)
 pp_check(Rich_wcbs_mod2)
-# no improvement in model fit to data, shape parameter is estimated to be 634 +/- 184
+# no improvement in model fit to data, shape parameter is estimated to be 611 +/- 174
 
 #' ### Abundance models
 # poisson models 
@@ -116,6 +115,7 @@ Abun_wcbs_mod <- brm(Abundance ~ AES1KM*AES3KM +
                        (1|SITENO),
                      data = WCBS_all_data, family = "poisson", prior = mod_pr,
                      cores = 4)
+summary(Abun_wcbs_mod)
 # does not converge - Rhat of intercept and group-level effects too high
 # negative binomial - with site RE
 Abun_wcbs_mod <- brm(Abundance ~ AES1KM*AES3KM +

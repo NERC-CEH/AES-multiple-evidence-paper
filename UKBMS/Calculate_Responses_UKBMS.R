@@ -101,7 +101,9 @@ UKBMS_RESPONSES <- ukbms_species %>%
   # remove site with unfeasibly high abundances
   filter(SITENO != 1063) %>%
   # remove site with missing species data (4856) 
-  filter(SITENO != 4856)
+  filter(SITENO != 4856) %>%
+  # remove single species transects
+  filter(!(SITENO %in% c(2127,2363,3107,3119,3128,3321,3322,3325)))
 
 #replace NA values in Richness, Abundance and Shannon_diversity with 0
 UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")][is.na(UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")])] <- 0
