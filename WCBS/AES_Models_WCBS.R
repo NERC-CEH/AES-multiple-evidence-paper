@@ -11,6 +11,7 @@ library(brms)
 dir <- config::get()
 scpath <- dir$directories$scoredata
 pcapath <- dir$directories$pcadata
+modpath <- dir$directories$models
 
 #' PCA scores
 PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
@@ -70,16 +71,25 @@ Rich_wcbs_mod <- brm(Richness ~ AES1KM*AES3KM +
                        Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
                        (1|SITENO),
                      data = WCBS_all_data, family = "poisson", prior = mod_pr,
-                     cores = 4)
+                     cores = 4, file = paste0(modpath, "WCBS_Richness_brm"))
 summary(Rich_wcbs_mod)
 plot(Rich_wcbs_mod)
 pp_check(Rich_wcbs_mod)
 # not too far away, but still slightly underpredicting at low counts and
 # overpredicting at medium counts
 plot(conditional_effects(Rich_wcbs_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
-     rug = TRUE, theme = ggplot2::theme_classic())
-
+                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+                     labels = c(0,10,20,30,40),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(7500,2500,500)) +
+  labs(x = "AES1KM ('000s)")
+ggsave("WCBS Richness AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 
 # Check model residuals with DHARMa
@@ -123,7 +133,7 @@ Abun_wcbs_mod <- brm(Abundance ~ AES1KM*AES3KM +
                        Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
                        (1|SITENO),
                      data = WCBS_all_data, family = "negbinomial", prior = mod_pr,
-                     cores = 4)
+                     cores = 4, file = paste0(modpath,"WCBS_Abundance_brm"))
 summary(Abun_wcbs_mod)
 plot(Abun_wcbs_mod)
 pp_check(Abun_wcbs_mod)
@@ -132,8 +142,18 @@ pp_check(Abun_wcbs_mod) +
 pp_check(Abun_wcbs_mod, type = "ecdf_overlay") + 
   scale_x_continuous(limits = c(0,1000))
 plot(conditional_effects(Abun_wcbs_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
-     rug = TRUE, theme = ggplot2::theme_classic())
+                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+                     labels = c(0,10,20,30,40),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(7500,2500,500)) +
+  labs(x = "AES1KM ('000s)")
+ggsave("WCBS Abundance AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 
 #' ### Diversity models
@@ -156,11 +176,21 @@ Div_wcbs_mod <- brm(expDiversity ~ AES1KM*AES3KM +
                       Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
                       (1|SITENO),
                     data = WCBS_all_data, prior = mod_pr,
-                    cores = 4)
+                    cores = 4, file = paste0(modpath,"WCBS_Diversity_brm"))
 summary(Div_wcbs_mod)
 plot(Div_wcbs_mod)
 pp_check(Div_wcbs_mod)
 # good fit to data
 plot(conditional_effects(Div_wcbs_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
-     rug = TRUE, theme = ggplot2::theme_classic())
+                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+                     labels = c(0,10,20,30,40),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(7500,2500,500)) +
+  labs(x = "AES1KM ('000s)", y = "exp(Shannon diversity)")
+ggsave("WCBS Diversity AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
