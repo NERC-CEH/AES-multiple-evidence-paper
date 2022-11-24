@@ -13,6 +13,7 @@ library(brms)
 dir <- config::get()
 scpath <- dir$directories$scoredata
 pcapath <- dir$directories$pcadata
+modpath <- dir$directories$models
 
 #' PCA scores
 PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
@@ -72,16 +73,25 @@ Rich_ukbms_mod <- brm(Richness ~ AES1KM*AES3KM +
                         Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
                         (1|SITENO),
                       data = UKBMS_all_data, family = "poisson", prior = mod_pr,
-                      cores = 4)
+                      cores = 4, file = paste0(modpath,"UKBMS_Richness_brm"))
 summary(Rich_ukbms_mod)
 plot(Rich_ukbms_mod)
 pp_check(Rich_ukbms_mod)
 # way out, overpredicting at low counts, underpredicting at medium counts and then
 # overpredicting at highest counts
 plot(conditional_effects(Rich_ukbms_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
-     rug = TRUE, theme = ggplot2::theme_classic())
-
+                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+                     labels = c(0,10,20,30,40),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                       aesthetics = c("colour","fill"),
+                       labels = c(7500,2500,500)) +
+  labs(x = "AES1KM ('000s)")
+ggsave("UKBMS Richness AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 mod_pr <- prior(normal(0,1), class = b) +
   prior(student_t(3,0,1), class = sd)
 Rich_ukbms_mod2 <- brm(Richness ~ AES1KM*AES3KM + 
@@ -116,7 +126,7 @@ Abun_ukbms_mod <- brm(Abundance ~ AES1KM*AES3KM +
                         Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
                         (1|SITENO),
                       data = UKBMS_all_data, family = "negbinomial", prior = mod_pr,
-                      cores = 4)
+                      cores = 4, file = paste0(modpath,"UKBMS_Abundance_brm"))
 summary(Abun_ukbms_mod)
 plot(Abun_ukbms_mod)
 pp_check(Abun_ukbms_mod)
@@ -126,9 +136,18 @@ pp_check(Abun_ukbms_mod) +
 pp_check(Abun_ukbms_mod, type = "ecdf_overlay") + 
   scale_x_continuous(limits = c(0,2000))
 plot(conditional_effects(Abun_ukbms_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
-     rug = TRUE, theme = ggplot2::theme_classic())
-
+                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+                     labels = c(0,10,20,30,40),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(7500,2500,500)) +
+  labs(x = "AES1KM ('000s)")
+ggsave("UKBMS Abundance AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 
 #' ### Diversity models
@@ -153,13 +172,23 @@ Div_ukbms_mod <- brm(expDiversity ~ AES1KM*AES3KM +
                        Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
                        (1|SITENO),
                      data = UKBMS_all_data, prior = mod_pr,
-                     cores = 4)
+                     cores = 4, file = paste0(modpath,"UKBMS_Diversity_brm"))
 summary(Div_ukbms_mod)
 plot(Div_ukbms_mod)
 pp_check(Div_ukbms_mod) # much better fit to data
 plot(conditional_effects(Div_ukbms_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.1,0.25,0.75))),
-     rug = TRUE, theme = ggplot2::theme_classic())
+                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+                     labels = c(0,10,20,30,40),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(7500,2500,500)) +
+  labs(x = "AES1KM ('000s)", y = "exp(Shannon diversity)")
+ggsave("UKBMS Diversity AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 # test
 Div_ukbms_mod3 <- brm(expDiversity ~ AES1KM*AES3KM, #+ 
