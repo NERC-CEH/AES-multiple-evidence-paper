@@ -21,6 +21,7 @@ library(brms)
 # load file paths
 dir <- config::get()
 pcapath <- dir$directories$pcadata
+modpath <- dir$directories$models
 
 # source data
 source("LandSpAES/collate butterfly data.R")
@@ -91,7 +92,7 @@ Abun_LS_mod <- brm(BUTTERFLY_COUNT ~ AES1KM*AES3KM +
                      Climate_PC1 + Landscape_PC1 + Habitat_PC1 +
                       (1|SURVEY_SQUARE),
                      data = buttabund, family = "negbinomial", prior = mod_pr,
-                     cores = 4)
+                     cores = 4, file = paste0(modpath,"LandSpAES_Abundance_brm"))
 summary(Abun_LS_mod)
 
 
@@ -126,7 +127,7 @@ plot(conditional_effects(Abun_LS_mod, effects = "AES3KM:AES1KM",
                       aesthetics = c("colour","fill"),
                       labels = c(7500,2500,500)) +
   labs(x = "AES3KM ('000s)")
-ggsave("LandSpAES Abundance AES1km AES3km interaction v2.png",
+ggsave("LandSpAES Abundance AES3km AES1km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 
