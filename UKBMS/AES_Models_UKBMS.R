@@ -49,8 +49,8 @@ UKBMS_all_data <- UKBMS_RESPONSES %>%
   ungroup() %>%
   filter(AES1KM < 50000) %>%
   mutate(YR = as.factor(YEAR),
-         AES1KM = AES1KM/20000,
-         AES3KM = AES3KM/10000,
+         AES1KM = (AES1KM-3000)/5000,
+         AES3KM = (AES3KM-3000)/5000,
          TRANSECT_LENGTH_NEW = TRANSECT_LENGTH_NEW/1000,
          N_VISITS_MAYTOAUGUST = N_VISITS_MAYTOAUGUST/10,
          YRnm = YEAR - 2016,
@@ -80,18 +80,34 @@ pp_check(Rich_ukbms_mod)
 # way out, overpredicting at low counts, underpredicting at medium counts and then
 # overpredicting at highest counts
 plot(conditional_effects(Rich_ukbms_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                        aesthetics = c("colour","fill"),
-                       labels = c(7500,2500,500)) +
+                       labels = c(5000,2500,500)) +
   labs(x = "AES1KM ('000s)")
 ggsave("UKBMS Richness AES1km AES3km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
+plot(conditional_effects(Rich_ukbms_mod, effects = "AES3KM:AES1KM",
+                         int_conditions = list(AES1KM = c(-0.5,-0.1,0.4))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES3KM ('000s)")
+ggsave("UKBMS Richness AES3km AES1km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
+
 mod_pr <- prior(normal(0,1), class = b) +
   prior(student_t(3,0,1), class = sd)
 Rich_ukbms_mod2 <- brm(Richness ~ AES1KM*AES3KM + 
@@ -136,17 +152,31 @@ pp_check(Abun_ukbms_mod) +
 pp_check(Abun_ukbms_mod, type = "ecdf_overlay") + 
   scale_x_continuous(limits = c(0,2000))
 plot(conditional_effects(Abun_ukbms_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
+                      labels = c(5000,2500,500)) +
   labs(x = "AES1KM ('000s)")
 ggsave("UKBMS Abundance AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
+plot(conditional_effects(Abun_ukbms_mod, effects = "AES3KM:AES1KM",
+                         int_conditions = list(AES1KM = c(-0.5,-0.1,0.4))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES3KM ('000s)")
+ggsave("UKBMS Abundance AES3km AES1km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 
@@ -177,18 +207,33 @@ summary(Div_ukbms_mod)
 plot(Div_ukbms_mod)
 pp_check(Div_ukbms_mod) # much better fit to data
 plot(conditional_effects(Div_ukbms_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
+                      labels = c(5000,2500,500)) +
   labs(x = "AES1KM ('000s)", y = "exp(Shannon diversity)")
 ggsave("UKBMS Diversity AES1km AES3km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
+plot(conditional_effects(Div_ukbms_mod, effects = "AES3KM:AES1KM",
+                         int_conditions = list(AES1KM = c(-0.5,-0.1,0.4))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES3KM ('000s)", y = "exp(Shannon diversity)")
+ggsave("UKBMS Diversity AES3km AES1km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
 
 # test
 Div_ukbms_mod3 <- brm(expDiversity ~ AES1KM*AES3KM, #+ 

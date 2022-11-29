@@ -47,8 +47,8 @@ WCBS_all_data <- wcbs_responses %>%
   ungroup() %>% 
   filter(AES1KM < 50000) %>%
   mutate(YR = as.factor(YEAR),
-         AES1KM = AES1KM/20000,
-         AES3KM = AES3KM/10000,
+         AES1KM = (AES1KM-3000)/5000,
+         AES3KM = (AES3KM-3000)/5000,
          TRANSECT_LENGTH = TRANSECT_LENGTH/1000,
          N_VISITS_MAYTOAUGUST = N_VISITS_MAYTOAUGUST/10,
          YRnm = YEAR - 2016,
@@ -78,17 +78,31 @@ pp_check(Rich_wcbs_mod)
 # not too far away, but still slightly underpredicting at low counts and
 # overpredicting at medium counts
 plot(conditional_effects(Rich_wcbs_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
+                      labels = c(5000,2500,500)) +
   labs(x = "AES1KM ('000s)")
 ggsave("WCBS Richness AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
+plot(conditional_effects(Rich_wcbs_mod, effects = "AES3KM:AES1KM",
+                         int_conditions = list(AES1KM = c(-0.5,-0.1,0.4))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES3KM ('000s)")
+ggsave("WCBS Richness AES3km AES1km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 
@@ -112,7 +126,7 @@ Rich_wcbs_mod2 <- brm(Richness ~ AES1KM*AES3KM +
 summary(Rich_wcbs_mod2)
 plot(Rich_wcbs_mod2)
 pp_check(Rich_wcbs_mod2)
-# no improvement in model fit to data, shape parameter is estimated to be 611 +/- 174
+# no improvement in model fit to data, shape parameter is estimated to be 614 +/- 179
 
 #' ### Abundance models
 # poisson models 
@@ -142,18 +156,33 @@ pp_check(Abun_wcbs_mod) +
 pp_check(Abun_wcbs_mod, type = "ecdf_overlay") + 
   scale_x_continuous(limits = c(0,1000))
 plot(conditional_effects(Abun_wcbs_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
+                      labels = c(5000,2500,500)) +
   labs(x = "AES1KM ('000s)")
 ggsave("WCBS Abundance AES1km AES3km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
+plot(conditional_effects(Abun_wcbs_mod, effects = "AES3KM:AES1KM",
+                         int_conditions = list(AES1KM = c(-0.5,-0.1,0.4))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES3KM ('000s)")
+ggsave("WCBS Abundance AES3km AES1km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
 
 
 #' ### Diversity models
@@ -182,15 +211,29 @@ plot(Div_wcbs_mod)
 pp_check(Div_wcbs_mod)
 # good fit to data
 plot(conditional_effects(Div_wcbs_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
+                      labels = c(5000,2500,500)) +
   labs(x = "AES1KM ('000s)", y = "exp(Shannon diversity)")
 ggsave("WCBS Diversity AES1km AES3km interaction.png",
+       path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
+
+plot(conditional_effects(Div_wcbs_mod, effects = "AES3KM:AES1KM",
+                         int_conditions = list(AES1KM = c(-0.5,-0.1,0.4))),
+     rug = TRUE, theme = ggplot2::theme_classic(),
+     rug_args = list(colour = "gray"))[[1]] +
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
+                     expand = c(0,0)) +
+  scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
+                      aesthetics = c("colour","fill"),
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES3KM ('000s)", y = "exp(Shannon diversity)")
+ggsave("WCBS Diversity AES3km AES1km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
