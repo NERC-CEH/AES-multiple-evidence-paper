@@ -109,8 +109,9 @@ hist(exp(buttdiv$SHANNON_DIV))
 
 
 #scale AES variables
-buttdiv$AES1KM <- scale(buttdiv$AES1KM)
-buttdiv$AES3KM <- scale(buttdiv$AES3KM)
+buttdiv$AES1KM <- (buttdiv$AES1KM-3000)/5000
+buttdiv$AES3KM <- (buttdiv$AES3KM-3000)/5000
+buttdiv$ROUND_NUMBER <- buttdiv$ROUND_NUMBER/10
 
 #treat survey year as factor
 buttdiv$SURVEY_YEAR <- factor(buttdiv$SURVEY_YEAR)
@@ -151,31 +152,30 @@ plot(Div_LS_mod)
 pp_check(Div_LS_mod)
 # good fit to data
 plot(conditional_effects(Div_LS_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
-  labs(x = "AES1KM ('000s)", y = "exp(Shannon diversity)")
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES1KM ('000s)")
 ggsave("LandSpAES Diversity AES1km AES3km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
-
 plot(conditional_effects(Div_LS_mod, effects = "AES3KM:AES1KM",
-                         int_conditions = list(AES1KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES1KM = c(-0.5, -0.1, 0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
-                     labels = c(0,10,20,30,40),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
-  labs(x = "AES3KM ('000s)", y = "exp(Shannon diversity)")
+                      labels = c(5000,2500,500)) +
+  labs(x = "AES3KM ('000s)")
 ggsave("LandSpAES Diversity AES3km AES1km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 

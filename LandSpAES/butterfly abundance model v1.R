@@ -72,10 +72,11 @@ fit_distrib(buttabund, 'BUTTERFLY_COUNT')
 
 #' Rescale predictors and fit model
 #' 
-buttabund$AES1KM <- scale(buttabund$AES1KM)
-buttabund$AES3KM <- scale(buttabund$AES3KM)
+buttabund$AES1KM <- (buttabund$AES1KM-3000)/5000
+buttabund$AES3KM <- (buttabund$AES3KM-3000)/5000
+buttabund$ROUND_NUMBER <- buttabund$ROUND_NUMBER/10
 
-#treat survye year as factor
+#treat survey year as factor
 buttabund$SURVEY_YEAR <- factor(buttabund$SURVEY_YEAR)
 
 
@@ -103,29 +104,29 @@ pp_check(Abun_LS_mod) +
 pp_check(Abun_LS_mod, type = "ecdf_overlay") + 
   scale_x_continuous(limits = c(0,1000))
 plot(conditional_effects(Abun_LS_mod, effects = "AES1KM:AES3KM",
-                         int_conditions = list(AES3KM = c(0.05,0.25,0.75))),
+                         int_conditions = list(AES3KM = c(-0.5,-0.1,0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(0,0.5,1,1.5,2.0),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4,7.4),
                      labels = c(0,10,20,30,40),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
+                      labels = c(5000,2500,500)) +
   labs(x = "AES1KM ('000s)")
 ggsave("LandSpAES Abundance AES1km AES3km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
 
 plot(conditional_effects(Abun_LS_mod, effects = "AES3KM:AES1KM",
-                         int_conditions = list(AES1KM = c(0.025,0.125,0.375))),
+                         int_conditions = list(AES1KM = c(-0.5, -0.1, 0.4))),
      rug = TRUE, theme = ggplot2::theme_classic(),
      rug_args = list(colour = "gray"))[[1]] +
-  scale_x_continuous(breaks = c(-2, -1, 0, 1,2,3,4),
-                     labels = c(-2, -1, 0,10,20,30,40),
+  scale_x_continuous(breaks = c(-0.6,1.4,3.4,5.4),
+                     labels = c(0,10,20,30),
                      expand = c(0,0)) +
   scale_colour_manual(values = c("#E69F00","#CC79A7","#0072B2"),
                       aesthetics = c("colour","fill"),
-                      labels = c(7500,2500,500)) +
+                      labels = c(5000,2500,500)) +
   labs(x = "AES3KM ('000s)")
 ggsave("LandSpAES Abundance AES3km AES1km interaction.png",
        path = modpath, width = 15, height = 12, units = "cm", dpi = 600)
