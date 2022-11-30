@@ -1,0 +1,97 @@
+
+library(reshape)
+library(reshape2)
+library(vegan)
+library(lme4)
+library(effects)
+library(tidyverse)
+library(DHARMa)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+theme_set(theme_classic())
+library(brms)
+library(ggeffects)
+
+
+# folder setup for saving
+dir <- config::get()
+modpath <- dir$directories$models
+
+my_col <- unname(palette.colors()[c(8,3,4)])
+
+
+Rich_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Richness_brm.RDS"))
+Rich_WCBS_mod <- readRDS(paste0(modpath, "WCBS_Richness_brm.RDS"))
+Rich_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_Richness_brm.RDS"))
+
+range(Rich_LS_mod$data$AES1KM)
+range(Rich_WCBS_mod$data$AES1KM)
+range(Rich_UKBMS_mod$data$AES1KM)
+
+range(Rich_LS_mod$data$AES3KM)
+range(Rich_WCBS_mod$data$AES3KM)
+range(Rich_UKBMS_mod$data$AES3KM)
+
+
+mean(c(Rich_LS_mod$data$AES1KM, Rich_WCBS_mod$data$AES1KM, Rich_UKBMS_mod$data$AES1KM))
+mean(c(Rich_LS_mod$data$AES3KM, Rich_WCBS_mod$data$AES3KM, Rich_UKBMS_mod$data$AES3KM))
+
+mean(c(Rich_LS_mod$data$Climate_PC1, Rich_WCBS_mod$data$Climate_PC1, Rich_UKBMS_mod$data$Climate_PC1))
+mean(c(Rich_LS_mod$data$Landscape_PC1, Rich_WCBS_mod$data$Landscape_PC1, Rich_UKBMS_mod$data$Landscape_PC1))
+mean(c(Rich_LS_mod$data$Habitat_PC1, Rich_WCBS_mod$data$Habitat_PC1, Rich_UKBMS_mod$data$Habitat_PC1))
+
+#scaled value for 4 rounds = 0.4
+
+p1 <- ggpredict(Rich_LS_mod, "AES1KM[-0.60:7.03, by = 0.5]",
+                condition = c("AES3KM" = "0.122",
+                              "ROUND_NUMBER" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
+
+p2 <- ggpredict(Rich_WCBS_mod, "AES1KM[-0.60:7.97, by = 0.5]",
+                condition = c("AES3KM" = "0.122",
+                              "N_VISITS_MAYTOAUGUST" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
+
+p3 <- ggpredict(Rich_UKBMS_mod, "AES1KM[-0.60:8.21, by = 0.5]",
+                condition = c("AES3KM" = "0.122",
+                              "N_VISITS_MAYTOAUGUST" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
+
+p1$group <- "LandSpAES"
+p2$group <- "UKBMS"
+p3$group <- "WCBS"
+
+
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
+  mutate(x = (x*5000 + 3000)/1000)
+rich_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
+  #          sides = "b") +
+  # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
+  #          sides = "t") +
+  # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
+  #          sides = "t", outside = TRUE) +
+  coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,30), expand = c(0,0)) +
+  # scale_x_continuous(limits = c(0,74000)) +
+  labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Richness") +
+  NULL
+rich_1km
+
+
