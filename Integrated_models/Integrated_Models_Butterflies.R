@@ -1,22 +1,172 @@
 #' ## Butterfly integrated models
 
-library(gtools)
-library(lme4)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+theme_set(theme_classic())
 library(brms)
-library(scales)
+
+#' Get data ####
+#' Environmental gradients represented as PCA scores, sourced from file on P
+#' drive.
+dir <- config::get()
+scpath <- dir$directories$scoredata
+pcapath <- dir$directories$pcadata
+modpath <- dir$directories$models
+
+#' PCA scores
+PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
+  select(-X)
+
+#' AES scores
+AES <- read.csv(paste0(scpath, "Butts_Gradient_Scores.csv"))
 
 
 #' source individual scheme models
 
-source("AES_Models_UKBMS.R")
+source("UKBMS/Calculate_Responses_UKBMS.R")
 
-source("AES_Models_WCBS.R")
+source("WCBS/Calculate_Responses_WCBS.R")
 
-source("LandSpaes_analysis/LandSpaes_butterfly_env_data_models.R")
+source("LandSpaes/collate butterfly data.R")
 
-source("validation_function.R")
+source("LandSpAES/functions_script.R")
+
+#' Manipulate data ####
+#' Get AES scores for UKBMS
+ukbms_aes <- AES %>%
+  filter(CELLCODE %in% UKBMS_RESPONSES$buttsurv.GRIDREF_1km) %>%
+  filter(MaskStatus == "OK") %>%
+  dplyr::select(CELLCODE, starts_with("Sc")) %>%
+  tidyr::pivot_longer(starts_with("Sc"),
+                      names_to = c("Scale","Year"),
+                      names_sep = "_",
+                      names_transform = list(Year = as.numeric)) %>%
+  mutate(Scale = dplyr::recode(Scale,
+                               "Score1km" = "AES1KM",
+                               "Score3km" = "AES3KM")) %>%
+  distinct() %>%
+  tidyr::pivot_wider(names_from = Scale,
+                     values_from = value)
+
+#' Combine all UKBMS data
+UKBMS_all_data <- UKBMS_RESPONSES %>%
+  inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "GRIDREF","YEAR")) %>%
+  left_join(ukbms_aes, by = c("buttsurv.GRIDREF_1km" = "CELLCODE","YEAR" = "Year")) %>%
+  ungroup() %>%
+  filter(AES1KM < 50000) %>%
+  mutate(YR = as.factor(YEAR),
+         AES1KM = (AES1KM-3000)/5000,
+         AES3KM = (AES3KM-3000)/5000,
+         TRANSECT_LENGTH_NEW = TRANSECT_LENGTH_NEW/1000,
+         N_VISITS_MAYTOAUGUST = N_VISITS_MAYTOAUGUST/10,
+         YRnm = YEAR - 2016,
+         YRnm2 = as.numeric(as.factor(YEAR)))
+
+#' WCBS
+wcbs_aes <- AES %>%
+  filter(CELLCODE %in% wcbs_responses$buttsurv.GRIDREF_1km) %>%
+  select(CELLCODE, starts_with("Sc")) %>%
+  pivot_longer(starts_with("Sc"),
+               names_to = c("scale","YEAR"),
+               names_sep = "_",
+               names_transform = list(YEAR = as.numeric)) %>%
+  mutate(scale = recode(scale,
+                        "Score1km" = "AES1KM",
+                        "Score3km" = "AES3KM")) %>%
+  distinct() %>%
+  pivot_wider(names_from = scale,
+              values_from = value)
+
+#' Combine all WCBS data and scale
+WCBS_all_data <- wcbs_responses %>%
+  inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "GRIDREF","YEAR")) %>%
+  inner_join(wcbs_aes, by = c("buttsurv.GRIDREF_1km" = "CELLCODE","YEAR")) %>%
+  ungroup() %>% 
+  filter(AES1KM < 50000) %>%
+  mutate(YR = as.factor(YEAR),
+         AES1KM = (AES1KM-3000)/5000,
+         AES3KM = (AES3KM-3000)/5000,
+         TRANSECT_LENGTH = TRANSECT_LENGTH/1000,
+         N_VISITS_MAYTOAUGUST = N_VISITS_MAYTOAUGUST/10,
+         YRnm = YEAR - 2016,
+         YRnm2 = as.numeric(as.factor(YEAR)))
+
+# LandSpAES
+buttabund <- aggregate(BUTTERFLY_COUNT ~ NCA + SURVEY_SQUARE + SURVEY_YEAR + AES1KM + AES3KM, data = buttcount2, FUN = function(x) sum(x))
+#90 observations
+
+buttrounds <- aggregate(ROUND_NUMBER ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttcount2, FUN = function(x) length(unique(x)))
+
+buttabund <- merge(buttabund, buttrounds, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
+
+#sunshine
+buttsun <- aggregate(PERC_SUN ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvariables, FUN = function(x) mean(x, na.rm = TRUE))
+
+buttabund <- merge(buttabund, buttsun, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
+
+#temperature
+butttemp <- aggregate(SURVEY_TEMP_SHADE ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvisit, FUN = function(x) mean(x, na.rm = TRUE))
+
+buttabund <- merge(buttabund, butttemp, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
+
+#PCA scores
+
+#need to remove half square for matching to PCA scores
+buttabund$SURVEY_SQUARE <- sapply(strsplit(buttabund$SURVEY_SQUARE, "\\/"),function(x) x[1])
+
+buttabund <- merge(buttabund, PCA, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("GRIDREF", "YEAR"))
 
 
+#' Rescale predictors and fit model
+buttabund$AES1KM <- (buttabund$AES1KM-3000)/5000
+buttabund$AES3KM <- (buttabund$AES3KM-3000)/5000
+buttabund$ROUND_NUMBER <- buttabund$ROUND_NUMBER/10
+
+#treat survey year as factor
+buttabund$SURVEY_YEAR <- factor(buttabund$SURVEY_YEAR)
+
+#
+all_data <- buttabund %>%
+  rename(N_VISITS_MAYTOAUGUST = ROUND_NUMBER, YR = SURVEY_YEAR,
+         Abundance = BUTTERFLY_COUNT, SITENO = SURVEY_SQUARE) %>%
+  mutate(SURVEY = "LandSpAES") %>%
+  full_join(mutate(UKBMS_all_data, SURVEY = "UKBMS", 
+                   SITENO = as.character(SITENO))) %>%
+  full_join(mutate(WCBS_all_data, SURVEY = "WCBS",
+                   SITENO = as.character(SITENO)))
+
+mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
+  prior(student_t(3,0,1), class = sd) + # prior for random effects
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+  prior(lkj(1), class = cor) + # prior for correlation between AES random effects
+  prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
+
+bmod <- brm(Abundance ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
+              YR + N_VISITS_MAYTOAUGUST +
+              (AES1KM*AES3KM|SURVEY) + (1|SITENO),
+            data = all_data, prior = mod_pr, family = "negbinomial",
+            cores = 4)
+# many divergent transitions, potential funnel between sd_SURVEY__Intercept and the mean
+summary(bmod)
+plot(bmod)
+
+# Try modelling without correlations between random effects:
+mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
+  prior(student_t(3,0,1), class = sd) + # prior for random effects
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
+  prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+  prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
+
+bmod2 <- brm(Abundance ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
+              YR + N_VISITS_MAYTOAUGUST +
+              (AES1KM*AES3KM||SURVEY) + (1|SITENO),
+            data = all_data, prior = mod_pr, family = "negbinomial",
+            cores = 4)
+# Didn't have time to run this, will try again later
 
 
 #try idea of z test to test similarity
