@@ -156,16 +156,29 @@ plot(bmod)
 # Try modelling without correlations between random effects:
 mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
   prior(student_t(3,0,1), class = sd) + # prior for random effects
-  prior(student_t(3,0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
-  prior(student_t(3,0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
-  prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+  prior(normal(0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
+  prior(normal(0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
+  # prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
   prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
 
 bmod2 <- brm(Abundance ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
               YR + N_VISITS_MAYTOAUGUST +
-              (AES1KM*AES3KM||SURVEY) + (1|SITENO),
+              (AES1KM + AES3KM||SURVEY) + (1|SITENO),
             data = all_data, prior = mod_pr, family = "negbinomial",
             cores = 4)
+# Didn't have time to run this, will try again later
+
+# fixed effect model
+mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
+  prior(student_t(3,0,1), class = sd) + # prior for random effects
+  # prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+  prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
+
+bmod3 <- brm(Abundance ~ AES1KM * AES3KM * SURVEY + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
+               YR + N_VISITS_MAYTOAUGUST +
+               (1|SITENO),
+             data = all_data, prior = mod_pr, family = "negbinomial",
+             cores = 4)
 # Didn't have time to run this, will try again later
 
 
