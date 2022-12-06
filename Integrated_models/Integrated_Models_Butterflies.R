@@ -130,43 +130,43 @@ buttabund$SURVEY_YEAR <- factor(buttabund$SURVEY_YEAR)
 all_data <- buttabund %>%
   rename(N_VISITS_MAYTOAUGUST = ROUND_NUMBER, YR = SURVEY_YEAR,
          Abundance = BUTTERFLY_COUNT, SITENO = SURVEY_SQUARE) %>%
-  mutate(SURVEY = "LandSpAES") %>%
+  mutate(SURVEY = "LandSpAES", TRANSECT_LENGTH_NEW = 2) %>%
   full_join(mutate(UKBMS_all_data, SURVEY = "UKBMS", 
                    SITENO = as.character(SITENO))) %>%
-  full_join(mutate(WCBS_all_data, SURVEY = "WCBS",
+  full_join(mutate(WCBS_all_data, SURVEY = "WCBS", TRANSECT_LENGTH_NEW = 2,
                    SITENO = as.character(SITENO)))
 
-mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
-  prior(student_t(3,0,1), class = sd) + # prior for random effects
-  prior(student_t(3,0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
-  prior(student_t(3,0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
-  prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
-  prior(lkj(1), class = cor) + # prior for correlation between AES random effects
-  prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
-
-bmod <- brm(Abundance ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
-              YR + N_VISITS_MAYTOAUGUST +
-              (AES1KM*AES3KM|SURVEY) + (1|SITENO),
-            data = all_data, prior = mod_pr, family = "negbinomial",
-            cores = 4)
-# many divergent transitions, potential funnel between sd_SURVEY__Intercept and the mean
-summary(bmod)
-plot(bmod)
-
-# Try modelling without correlations between random effects:
-mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
-  prior(student_t(3,0,1), class = sd) + # prior for random effects
-  prior(normal(0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
-  prior(normal(0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
-  # prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
-  prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
-
-bmod2 <- brm(Abundance ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
-              YR + N_VISITS_MAYTOAUGUST +
-              (AES1KM + AES3KM||SURVEY) + (1|SITENO),
-            data = all_data, prior = mod_pr, family = "negbinomial",
-            cores = 4)
-# Didn't have time to run this, will try again later
+# mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
+#   prior(student_t(3,0,1), class = sd) + # prior for random effects
+#   prior(student_t(3,0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
+#   prior(student_t(3,0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
+#   prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+#   prior(lkj(1), class = cor) + # prior for correlation between AES random effects
+#   prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
+# 
+# bmod <- brm(Abundance ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
+#               YR + N_VISITS_MAYTOAUGUST +
+#               (AES1KM*AES3KM|SURVEY) + (1|SITENO),
+#             data = all_data, prior = mod_pr, family = "negbinomial",
+#             cores = 4)
+# # many divergent transitions, potential funnel between sd_SURVEY__Intercept and the mean
+# summary(bmod)
+# plot(bmod)
+# 
+# # Try modelling without correlations between random effects:
+# mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
+#   prior(student_t(3,0,1), class = sd) + # prior for random effects
+#   prior(normal(0,0.5), class = sd, coef = AES1KM, group = SURVEY) +
+#   prior(normal(0,0.5), class = sd, coef = AES3KM, group = SURVEY) +
+#   # prior(student_t(3,0,0.5), class = sd, coef = AES1KM:AES3KM, group = SURVEY) +
+#   prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
+# 
+# bmod2 <- brm(Abundance ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
+#               YR + N_VISITS_MAYTOAUGUST +
+#               (AES1KM + AES3KM||SURVEY) + (1|SITENO),
+#             data = all_data, prior = mod_pr, family = "negbinomial",
+#             cores = 4)
+# # Didn't have time to run this, will try again later
 
 # fixed effect model
 mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
@@ -175,11 +175,31 @@ mod_pr <- prior(normal(0,1), class = b) + # prior for fixed effects
   prior(gamma(0.01,0.01), class = shape) #shape parameter for negative binomial
 
 bmod3 <- brm(Abundance ~ AES1KM * AES3KM * SURVEY + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
-               YR + N_VISITS_MAYTOAUGUST +
+               YR + N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW +
                (1|SITENO),
              data = all_data, prior = mod_pr, family = "negbinomial",
              cores = 4)
 # Didn't have time to run this, will try again later
+
+#remove survey interaction - don't need this as not anticipating varying slopes by survey
+bmod4 <- brm(Abundance ~ AES1KM * AES3KM + SURVEY + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
+               YR + N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW +
+               (1|SITENO),
+             data = all_data, prior = mod_pr, family = "negbinomial",
+             cores = 4)
+# 
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #try idea of z test to test similarity
