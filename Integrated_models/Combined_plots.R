@@ -13,6 +13,7 @@ theme_set(theme_classic())
 library(brms)
 library(ggeffects)
 library(patchwork)
+library(gtools)
 
 # folder setup for saving
 dir <- config::get()
@@ -25,7 +26,7 @@ Rich_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Richness_brm.RDS"))
 Rich_WCBS_mod <- readRDS(paste0(modpath, "WCBS_Richness_brm.RDS"))
 Rich_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_Richness_brm.RDS"))
 
-Abun_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Abundance_brm.RDS"))
+Abund_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Abundance_brm.RDS"))
 Abund_WCBS_mod <- readRDS(paste0(modpath, "WCBS_Abundance_brm.RDS"))
 Abund_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_Abundance_brm.RDS"))
 
@@ -37,6 +38,24 @@ Div_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_Diversity_brm.RDS"))
 range(Rich_LS_mod$data$AES1KM)
 range(Rich_WCBS_mod$data$AES1KM)
 range(Rich_UKBMS_mod$data$AES1KM)
+
+## add AES score histograms for BES
+
+
+AES_data <- smartbind(Rich_LS_mod$data, Rich_WCBS_mod$data, Rich_UKBMS_mod$data)
+AES_data$SURVEY <- c(rep("LandSpAES", nrow(Rich_LS_mod$data)),
+                         rep("WCBS", nrow(Rich_WCBS_mod$data)),
+                     rep("UKBMS", nrow(Rich_UKBMS_mod$data)))
+
+ggplot(AES_data, aes(x = AES1KM, fill = SURVEY))+
+  geom_density(alpha = .25)
+ggplot(AES_data, aes(x = AES3KM, fill = SURVEY))+
+  geom_density(alpha = .25)+
+  xlab("Landscape AES score") +
+  ylab("Density")+
+  scale_fill_manual(values = c("#F8766D", "#619CFF", "#00BA38"))
+
+###
 
 
 
@@ -457,5 +476,5 @@ div_1km + div_3km + plot_layout(guides='collect') &
 ggsave(paste0(modpath,"Combined plots/Butterfly diversity combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
 
 
-
+#####Add z test equivalent by calculating difference between posteriors and then assessing overlap with 1
 
