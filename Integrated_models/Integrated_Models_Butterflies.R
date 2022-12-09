@@ -202,6 +202,7 @@ bmod4 <- brm(Abundance ~ AES1KM * AES3KM + SURVEY + Climate_PC1 + Habitat_PC1 + 
 
 
 
+
 #try idea of z test to test similarity
 ztest <- function(mod1, mod2, term){
   p <- vector(); z <- vector()
