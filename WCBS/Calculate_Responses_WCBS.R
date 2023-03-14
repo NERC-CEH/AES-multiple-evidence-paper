@@ -1,6 +1,7 @@
 # UKBMS
 library(dplyr)
 library(readxl)
+library(RODBC)
 
 # useful function
 shandiv <- function(x){
@@ -79,22 +80,44 @@ unique(grep("skipper",wcbs_species$COMMON_NAME, value = TRUE, ignore.case = TRUE
 wcbs_species %>% filter(COMMON_NAME == "Painted Lady") %>%
   .$COUNT %>% summary()
 
+
+db <- config::get("AES")
+
+con <- odbcConnect(db$DSN, db$uid, db$pwd, believeNRows = FALSE)
+
+butttraits <- sqlFetch(con, "TBL_BUTTERFLY_SPECIES")
+
+close(con)
+
+#ugly code here to add traits
+wcbs_species$TRAIT <- butttraits$WINGSPAN_CATEGORY[match(wcbs_species$SCI_NAME, butttraits$BUTTERFLY_SPECIES)]
+
+
 wcbs_responses <- wcbs_species %>%
   mutate(COMMON_NAME = recode(COMMON_NAME,
                               "Essex Skipper" = "Essex/Small Skipper",
                               "Small Skipper" = "Essex/Small Skipper")) %>%
-  group_by(SITENO, YEAR, COMMON_NAME) %>%
-  summarise(COUNT = sum(COUNT)) %>%
+  group_by(SITENO, YEAR, COMMON_NAME, TRAIT) %>%
+  summarise(COUNT = sum(COUNT),
+            LOW_COUNT = sum(COUNT[TRAIT == 1], na.rm = TRUE),
+            MED_COUNT = sum(COUNT[TRAIT == 2], na.rm = TRUE),
+            HIGH_COUNT = sum(COUNT[TRAIT == 3], na.rm = TRUE)) %>%
+  group_by(SITENO, YEAR) %>%
   summarise(Abundance = sum(COUNT),
             Richness = sum(COUNT>0),
-            Shannon_diversity = shandiv(COUNT)) %>%
+            Shannon_diversity = shandiv(COUNT),
+            Low_mobility_abund = sum(LOW_COUNT),
+            Med_mobility_abund = sum(MED_COUNT),
+            High_mobility_abund = sum(HIGH_COUNT)) %>%
   right_join(wcbs_sites)
 
 #replace one missing transect length
 wcbs_responses$TRANSECT_LENGTH <- 2000
 
 #replace NA values in Richness, Abundance and Shannon_diversity with 0
-wcbs_responses[,c("Abundance", "Richness", "Shannon_diversity")][is.na(wcbs_responses[,c("Abundance", "Richness", "Shannon_diversity")])] <- 0
+wcbs_responses[,c("Abundance", "Richness", "Shannon_diversity",
+                  "Low_mobility_abund","Med_mobility_abund","High_mobility_abund")][is.na(wcbs_responses[,c("Abundance", "Richness", "Shannon_diversity",
+                                                                                                            "Low_mobility_abund","Med_mobility_abund","High_mobility_abund")])] <- 0
 
 #remove masked grid references
 

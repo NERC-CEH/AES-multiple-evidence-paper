@@ -1,6 +1,7 @@
 # UKBMS
 library(dplyr)
 library(readxl)
+library(RODBC)
 
 # useful function
 shandiv <- function(x){
@@ -61,15 +62,15 @@ ukbms_species %>% group_by(SITENO) %>%
   summarise(n = length(unique(TRANSECT_LENGTH_NEW))) %>% 
   janitor::tabyl(n)
 # every site has maximum 1 transect length
-ukbms_transect <- select(ukbms_species, SITENO, TRANSECT_LENGTH_NEW) %>%
+ukbms_transect <- dplyr::select(ukbms_species, SITENO, TRANSECT_LENGTH_NEW) %>%
   unique()
 janitor::get_dupes(ukbms_transect, SITENO)
 # no duplicates
 
 # all metadata
 ukbms_sites <- full_join(ukbms_sites, ukbms_transect) %>%
-  select(SITENO, EAST, NORTH, YEAR, N_VISITS_MAYTOAUGUST, TRANSECT_LENGTH_NEW) %>%
-  left_join(select(ukbms_locs, SITENO = `buttsurv.SITENO`,
+  dplyr::select(SITENO, EAST, NORTH, YEAR, N_VISITS_MAYTOAUGUST, TRANSECT_LENGTH_NEW) %>%
+  left_join(dplyr::select(ukbms_locs, SITENO = `buttsurv.SITENO`,
                    buttsurv.GRIDREF_1km) %>%
   mutate(SITENO = as.numeric(SITENO)))
 
@@ -87,15 +88,38 @@ unique(grep("skipper",ukbms_species$COMMON_NAME, value = TRUE, ignore.case = TRU
 ukbms_species %>% filter(COMMON_NAME == "Painted Lady") %>%
   .$COUNT %>% summary()
 
+
+db <- config::get("AES")
+
+con <- odbcConnect(db$DSN, db$uid, db$pwd, believeNRows = FALSE)
+
+butttraits <- sqlFetch(con, "TBL_BUTTERFLY_SPECIES")
+
+close(con)
+
+#ugly code here to add traits
+ukbms_species$TRAIT <- butttraits$WINGSPAN_CATEGORY[match(ukbms_species$SCI_NAME, butttraits$BUTTERFLY_SPECIES)]
+
+##assign aggregate to trait values
+ukbms_species$TRAIT[ukbms_species$SCI_NAME == "Thymelicus lineola/sylvestris"] <- 1
+
+
 UKBMS_RESPONSES <- ukbms_species %>%
   mutate(COMMON_NAME = recode(COMMON_NAME,
                               "Essex Skipper" = "Essex/Small Skipper",
                               "Small Skipper" = "Essex/Small Skipper")) %>%
-  group_by(SITENO, YEAR, COMMON_NAME) %>%
-  summarise(COUNT = sum(COUNT)) %>%
+  group_by(SITENO, YEAR, COMMON_NAME, TRAIT) %>%
+  summarise(COUNT = sum(COUNT),
+            LOW_COUNT = sum(COUNT[TRAIT == 1], na.rm = TRUE),
+            MED_COUNT = sum(COUNT[TRAIT == 2], na.rm = TRUE),
+            HIGH_COUNT = sum(COUNT[TRAIT == 3], na.rm = TRUE)) %>%
+  group_by(SITENO, YEAR) %>%
   summarise(Abundance = sum(COUNT),
             Richness = sum(COUNT>0),
-            Shannon_diversity = shandiv(COUNT)) %>%
+            Shannon_diversity = shandiv(COUNT),
+            Low_mobility_abund = sum(LOW_COUNT),
+            Med_mobility_abund = sum(MED_COUNT),
+            High_mobility_abund = sum(HIGH_COUNT)) %>%
   right_join(ukbms_sites) %>%
   # change to right join so sites with no butterflies are still included
   # remove site with unfeasibly high abundances
@@ -106,7 +130,9 @@ UKBMS_RESPONSES <- ukbms_species %>%
   filter(!(SITENO %in% c(2127,2363,3107,3119,3128,3321,3322,3325)))
 
 #replace NA values in Richness, Abundance and Shannon_diversity with 0
-UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")][is.na(UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity")])] <- 0
+UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity",
+                   "Low_mobility_abund","Med_mobility_abund","High_mobility_abund")][is.na(UKBMS_RESPONSES[,c("Abundance", "Richness", "Shannon_diversity",
+                                                                                                              "Low_mobility_abund","Med_mobility_abund","High_mobility_abund")])] <- 0
 
 #remove transect lengths less than 50m (6 entries)
 UKBMS_RESPONSES <- UKBMS_RESPONSES[UKBMS_RESPONSES$TRANSECT_LENGTH_NEW > 49,]

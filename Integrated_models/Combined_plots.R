@@ -35,6 +35,33 @@ Div_WCBS_mod <- readRDS(paste0(modpath, "WCBS_Diversity_brm.RDS"))
 Div_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_Diversity_brm.RDS"))
 
 
+#result tables AES effects only (for reference in BES talk)
+
+
+m1 <- summary(Rich_LS_mod)$fixed[2:3,]
+m1$Model <- "Rich_LS"
+m2 <- summary(Rich_UKBMS_mod)$fixed[2:3,]
+m2$Model <- "Rich_UKBMS"
+m3 <- summary(Rich_WCBS_mod)$fixed[2:3,]
+m3$Model <- "Rich_WCBS"
+m4 <- summary(Abund_LS_mod)$fixed[2:3,]
+m4$Model <- "Abund_LS"
+m5 <- summary(Abund_UKBMS_mod)$fixed[2:3,]
+m5$Model <- "Abund_UKBMS"
+m6 <- summary(Abund_LS_mod)$fixed[2:3,]
+m6$Model <- "Abund_WCBS"
+m7 <- summary(Div_LS_mod)$fixed[2:3,]
+m7$Model <- "Div_LS"
+m8 <- summary(Div_UKBMS_mod)$fixed[2:3,]
+m8$Model <- "Div_UKBMS"
+m9 <- summary(Div_LS_mod)$fixed[2:3,]
+m9$Model <- "Div_WCBS"
+
+write.csv(rbind(m1,m2,m3,m4,m5,m6,m7,m8,m9), "Results_summary.csv")
+
+
+
+
 range(Rich_LS_mod$data$AES1KM)
 range(Rich_WCBS_mod$data$AES1KM)
 range(Rich_UKBMS_mod$data$AES1KM)
