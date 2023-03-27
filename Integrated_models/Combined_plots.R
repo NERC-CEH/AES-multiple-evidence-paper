@@ -505,3 +505,39 @@ ggsave(paste0(modpath,"Combined plots/Butterfly diversity combined 1km and 3km i
 
 #####Add z test equivalent by calculating difference between posteriors and then assessing overlap with 1
 
+
+
+#try idea of z test to test similarity
+ztest <- function(mod1, mod2, term){
+  p <- vector(); z <- vector()
+  for (i in term){
+    b1 <- summary(mod1)$fixed[row.names(summary(mod1)$fixed) == i,1]
+    b2 <- summary(mod2)$fixed[row.names(summary(mod2)$fixed) == i,1]
+    se1 <- sqrt(diag(vcov(mod1)))[names(sqrt(diag(vcov(mod1)))) == i]
+    se2 <- sqrt(diag(vcov(mod2)))[names(sqrt(diag(vcov(mod2)))) == i]
+    z[which(term == i)] <- (b1-b2)/(sqrt((se1^2) + (se2^2)))
+    p[which(term == i)] <- 2*pnorm(abs(z[which(term == i)]), lower.tail = FALSE)
+  }
+  z.df <- data.frame(term = term, z = z, p = p)
+  return(z.df)
+}
+
+#richness
+ztest(Rich_LS_mod, Rich_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+ztest(Rich_LS_mod, Rich_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+ztest(Rich_UKBMS_mod, Rich_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+
+#abundance
+ztest(Abund_LS_mod, Abund_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+ztest(Abund_LS_mod, Abund_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+ztest(Abund_UKBMS_mod, Abund_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+
+#diversity
+ztest(Div_LS_mod, Div_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+ztest(Div_LS_mod, Div_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+ztest(Div_UKBMS_mod, Div_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
+#richness and abundance definitely OK, diversity borderline
+#may need to remove UKBMS from abundance and diversity?
+
+
+
