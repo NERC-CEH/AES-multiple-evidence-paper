@@ -190,9 +190,149 @@ div_mod <- glmmTMB(Shannon_diversity ~ AES1KM * AES3KM + Climate_PC1 + Habitat_P
                       (1|SITENO) + (1|SURVEY), data = all_data, family = "gaussian")
 
 
+##plot abundance
+
+p1km <- ggpredict(abund_mod, "AES1KM[-0.60:8.21, by = 0.5]",
+                condition = c("AES3KM" = "0.122",
+                              "ROUND_NUMBER" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
+
+
+p3km <- ggpredict(abund_mod, "AES3KM[-0.60:7.38, by = 0.5]",
+                condition = c("AES1KM" = "0.362",
+                              "ROUND_NUMBER" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
+
+abund_1km <- ggplot(p1km, aes(x = x, y = predicted)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  coord_cartesian(clip = "off") +
+  scale_y_continuous(limits = c(0,1100), expand = c(0,0)) +
+  labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Abundance") +
+  NULL
+abund_1km
+
+ggsave(paste0(modpath,"Combined plots/Butterfly abundance 1km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+
+abund_3km <- ggplot(p3km, aes(x = x, y = predicted)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  coord_cartesian(clip = "off") +
+  scale_y_continuous(limits = c(0,1100), expand = c(0,0)) +
+  labs(x = "AES 3km ('000s)", y = "Predicted Butterfly Abundance") +
+  NULL
+abund_3km
+
+ggsave(paste0(modpath,"Combined plots/Butterfly abundance 3km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+abund_1km + abund_3km + plot_layout(guides='collect') &
+  theme(legend.position='bottom')
+ggsave(paste0(modpath,"Combined plots/Butterfly abundance combined 1km and 3km integrated.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
+
+
+##plot richness
+
+p1km <- ggpredict(rich_mod, "AES1KM[-0.60:8.21, by = 0.5]",
+                  condition = c("AES3KM" = "0.122",
+                                "ROUND_NUMBER" = "0.4",
+                                "SURVEY_YEAR" = "2018",
+                                "Climate_PC1" = "-0.04",
+                                "Landscape_PC1" = "-0.05",
+                                "Habitat_PC1" = "0.26"))
+
+
+p3km <- ggpredict(rich_mod, "AES3KM[-0.60:7.38, by = 0.5]",
+                  condition = c("AES1KM" = "0.362",
+                                "ROUND_NUMBER" = "0.4",
+                                "SURVEY_YEAR" = "2018",
+                                "Climate_PC1" = "-0.04",
+                                "Landscape_PC1" = "-0.05",
+                                "Habitat_PC1" = "0.26"))
+
+rich_1km <- ggplot(p1km, aes(x = x, y = predicted)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  coord_cartesian(clip = "off") +
+  scale_y_continuous(limits = c(0,30), expand = c(0,0)) +
+  labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Richness") +
+  NULL
+rich_1km
+
+ggsave(paste0(modpath,"Combined plots/Butterfly richness 1km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+
+rich_3km <- ggplot(p3km, aes(x = x, y = predicted)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  coord_cartesian(clip = "off") +
+  scale_y_continuous(limits = c(0,30), expand = c(0,0)) +
+  labs(x = "AES 3km ('000s)", y = "Predicted Butterfly Richness") +
+  NULL
+rich_3km
+
+ggsave(paste0(modpath,"Combined plots/Butterfly richness 3km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+rich_1km + rich_3km + plot_layout(guides='collect') &
+  theme(legend.position='bottom')
+ggsave(paste0(modpath,"Combined plots/Butterfly richness combined 1km and 3km integrated.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
 
 
 
+##plot diversity
+
+p1km <- ggpredict(div_mod, "AES1KM[-0.60:8.21, by = 0.5]",
+                  condition = c("AES3KM" = "0.122",
+                                "ROUND_NUMBER" = "0.4",
+                                "SURVEY_YEAR" = "2018",
+                                "Climate_PC1" = "-0.04",
+                                "Landscape_PC1" = "-0.05",
+                                "Habitat_PC1" = "0.26"))
 
 
+p3km <- ggpredict(div_mod, "AES3KM[-0.60:7.38, by = 0.5]",
+                  condition = c("AES1KM" = "0.362",
+                                "ROUND_NUMBER" = "0.4",
+                                "SURVEY_YEAR" = "2018",
+                                "Climate_PC1" = "-0.04",
+                                "Landscape_PC1" = "-0.05",
+                                "Habitat_PC1" = "0.26"))
 
+div_1km <- ggplot(p1km, aes(x = x, y = predicted)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  coord_cartesian(clip = "off") +
+  scale_y_continuous(limits = c(0,2.5), expand = c(0,0)) +
+  labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Diversity") +
+  NULL
+div_1km
+
+ggsave(paste0(modpath,"Combined plots/Butterfly diversity 1km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+
+div_3km <- ggplot(p3km, aes(x = x, y = predicted)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  coord_cartesian(clip = "off") +
+  scale_y_continuous(limits = c(0,2.5), expand = c(0,0)) +
+  labs(x = "AES 3km ('000s)", y = "Predicted Butterfly diversity") +
+  NULL
+div_3km
+
+ggsave(paste0(modpath,"Combined plots/Butterfly diversity 3km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+div_1km + div_3km + plot_layout(guides='collect') &
+  theme(legend.position='bottom')
+ggsave(paste0(modpath,"Combined plots/Butterfly diversity combined 1km and 3km integrated.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
