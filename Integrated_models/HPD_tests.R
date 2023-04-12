@@ -1,29 +1,11 @@
 ##HPD tests
 
 
-
-library(reshape)
-library(reshape2)
-library(vegan)
-library(lme4)
-library(effects)
-library(tidyverse)
-library(DHARMa)
-library(dplyr)
-library(tidyr)
-library(ggplot2)
-theme_set(theme_classic())
-library(brms)
-library(ggeffects)
-library(patchwork)
-library(gtools)
 library(HDInterval)
 
 # folder setup for saving
 dir <- config::get()
 modpath <- dir$directories$models
-
-my_col <- unname(palette.colors()[c(8,3,4)])
 
 
 Rich_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Richness_brm.RDS"))
