@@ -268,7 +268,7 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
   mutate(x = (x*5000 + 3000)/1000)
 abund_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
@@ -332,7 +332,7 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
   mutate(x = (x*5000 + 3000)/1000)
 abund_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
@@ -411,7 +411,7 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
   mutate(x = (x*5000 + 3000)/1000)
 div_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
@@ -474,7 +474,7 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
   mutate(x = (x*5000 + 3000)/1000)
 div_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
@@ -503,6 +503,10 @@ div_1km + div_3km + plot_layout(guides='collect') &
 ggsave(paste0(modpath,"Combined plots/Butterfly diversity combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
 
 
+## all plots combined
 
+abund_1km + abund_3km + div_1km + div_3km + rich_1km + rich_3km + plot_layout(guides = 'collect', ncol = 2) &
+  theme(legend.position = "bottom")
+ggsave(paste0(modpath,"Combined plots/All individual scheme plots combined.png"), height = 1600, width = 1100, units = "mm", scale = 0.15)
 
 
