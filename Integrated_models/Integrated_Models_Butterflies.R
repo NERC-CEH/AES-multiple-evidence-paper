@@ -7,7 +7,7 @@ theme_set(theme_classic())
 library(brms)
 
 
-my_col <- unname(palette.colors()[c(8,9)])
+my_col <- unname(palette.colors()[c(9,8)])
 
 #' Get data ####
 #' Environmental gradients represented as PCA scores, sourced from file on P
@@ -183,6 +183,10 @@ all_data2 <- butt_vars %>%
   full_join(mutate(WCBS_all_data, SURVEY = "WCBS", TRANSECT_LENGTH_NEW = 2,
                    SITENO = as.character(SITENO)))
 
+#transform Shannon diversity
+
+all_data$expShannon_diversity <- exp(all_data$Shannon_diversity)
+
 ##fit model in glmmTMB
 
 library(glmmTMB)
@@ -196,9 +200,17 @@ rich_mod <- glmmTMB(Richness ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Lan
                        (1|SITENO) + (1|SURVEY), data = all_data, family = "poisson")
 
 
-div_mod <- glmmTMB(Shannon_diversity ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
+div_mod <- glmmTMB(expShannon_diversity ~ AES1KM * AES3KM + Climate_PC1 + Habitat_PC1 + Landscape_PC1 + 
                       YR + N_VISITS_MAYTOAUGUST + TRANSECT_LENGTH_NEW +
                       (1|SITENO) + (1|SURVEY), data = all_data, family = "gaussian")
+
+
+#save model outputs
+
+saveRDS(abund_mod, file = "Integrated_Abundance_model.RDS")
+saveRDS(rich_mod, file = "Integrated_Richness_model.RDS")
+saveRDS(div_mod, file = "Integrated_Diversity_model.RDS")
+
 
 
 
@@ -210,6 +222,8 @@ Rich_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Richness_brm.RDS"))
 Abund_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Abundance_brm.RDS"))
 
 Div_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Diversity_brm.RDS"))
+
+
 
 
 
@@ -253,7 +267,9 @@ p3$group <- "LandSpAES"
 p1km$std.error <- NULL
 p3km$std.error <- NULL
 p1kmc <- do.call(rbind, list(p1km, p1)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+  plyr::mutate(x = (x*5000 + 3000)/1000)
+p3kmc <- do.call(rbind, list(p3km, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 
 abund_1km <- ggplot(p1kmc, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
@@ -271,11 +287,14 @@ abund_1km
 ggsave(paste0(modpath,"Combined plots/Butterfly abundance 1km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 
-abund_3km <- ggplot(p3km, aes(x = x, y = predicted)) + 
+abund_3km <- ggplot(p3kmc, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
   coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
   scale_y_continuous(limits = c(0,1100), expand = c(0,0)) +
   labs(x = "AES 3km ('000s)", y = "Predicted Butterfly Abundance") +
   NULL
@@ -294,24 +313,55 @@ p1km <- ggpredict(rich_mod, "AES1KM[-0.60:8.21, by = 0.5]",
                   condition = c("AES3KM" = "0.122",
                                 "N_VISITS_MAYTOAUGUST" = "0.4",
                                 "YR" = "2018",
+                                "TRANSECT_LENGTH_NEW" = "2",
                                 "Climate_PC1" = "-0.04",
                                 "Landscape_PC1" = "-0.05",
                                 "Habitat_PC1" = "0.26"))
-
+p1 <- ggpredict(Rich_LS_mod, "AES1KM[-0.60:7.03, by = 0.5]",
+                condition = c("AES3KM" = "0.122",
+                              "ROUND_NUMBER" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
 
 p3km <- ggpredict(rich_mod, "AES3KM[-0.60:7.38, by = 0.5]",
                   condition = c("AES1KM" = "0.362",
                                 "N_VISITS_MAYTOAUGUST" = "0.4",
                                 "YR" = "2018",
+                                "TRANSECT_LENGTH_NEW" = "2",
                                 "Climate_PC1" = "-0.04",
                                 "Landscape_PC1" = "-0.05",
                                 "Habitat_PC1" = "0.26"))
+p3 <- ggpredict(Rich_LS_mod, "AES3KM[-0.60:2.42, by = 0.5]",
+                condition = c("AES1KM" = "0.362",
+                              "ROUND_NUMBER" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
 
-rich_1km <- ggplot(p1km, aes(x = x, y = predicted)) + 
+p1km$group <- "Integrated"
+p1$group <- "LandSpAES"
+p3km$group <- "Integrated"
+p3$group <- "LandSpAES"
+
+p1km$std.error <- NULL
+p3km$std.error <- NULL
+p1kmc <- do.call(rbind, list(p1km, p1)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
+p3kmc <- do.call(rbind, list(p3km, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
+
+
+rich_1km <- ggplot(p1kmc, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
   coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
   scale_y_continuous(limits = c(0,30), expand = c(0,0)) +
   labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Richness") +
   NULL
@@ -320,11 +370,14 @@ rich_1km
 ggsave(paste0(modpath,"Combined plots/Butterfly richness 1km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 
-rich_3km <- ggplot(p3km, aes(x = x, y = predicted)) + 
+rich_3km <- ggplot(p3kmc, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
   coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
   scale_y_continuous(limits = c(0,30), expand = c(0,0)) +
   labs(x = "AES 3km ('000s)", y = "Predicted Butterfly Richness") +
   NULL
@@ -344,25 +397,56 @@ p1km <- ggpredict(div_mod, "AES1KM[-0.60:8.21, by = 0.5]",
                   condition = c("AES3KM" = "0.122",
                                 "N_VISITS_MAYTOAUGUST" = "0.4",
                                 "YR" = "2018",
+                                "TRANSECT_LENGTH_NEW" = "2",
                                 "Climate_PC1" = "-0.04",
                                 "Landscape_PC1" = "-0.05",
                                 "Habitat_PC1" = "0.26"))
-
+p1 <- ggpredict(Div_LS_mod, "AES1KM[-0.60:7.03, by = 0.5]",
+                condition = c("AES3KM" = "0.122",
+                              "ROUND_NUMBER" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
 
 p3km <- ggpredict(div_mod, "AES3KM[-0.60:7.38, by = 0.5]",
                   condition = c("AES1KM" = "0.362",
                                 "N_VISITS_MAYTOAUGUST" = "0.4",
                                 "YR" = "2018",
+                                "TRANSECT_LENGTH_NEW" = "2",
                                 "Climate_PC1" = "-0.04",
                                 "Landscape_PC1" = "-0.05",
                                 "Habitat_PC1" = "0.26"))
+p3 <- ggpredict(Div_LS_mod, "AES3KM[-0.60:2.42, by = 0.5]",
+                condition = c("AES1KM" = "0.362",
+                              "ROUND_NUMBER" = "0.4",
+                              "SURVEY_YEAR" = "2018",
+                              "Climate_PC1" = "-0.04",
+                              "Landscape_PC1" = "-0.05",
+                              "Habitat_PC1" = "0.26"))
 
-div_1km <- ggplot(p1km, aes(x = x, y = predicted)) + 
+p1km$group <- "Integrated"
+p1$group <- "LandSpAES"
+p3km$group <- "Integrated"
+p3$group <- "LandSpAES"
+
+p1km$std.error <- NULL
+p3km$std.error <- NULL
+p1kmc <- do.call(rbind, list(p1km, p1)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
+p3kmc <- do.call(rbind, list(p3km, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
+
+
+div_1km <- ggplot(p1kmc, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
   coord_cartesian(clip = "off") +
-  scale_y_continuous(limits = c(0,2.5), expand = c(0,0)) +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,15), expand = c(0,0)) +
   labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Diversity") +
   NULL
 div_1km
@@ -370,12 +454,15 @@ div_1km
 ggsave(paste0(modpath,"Combined plots/Butterfly diversity 1km integrated.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 
-div_3km <- ggplot(p3km, aes(x = x, y = predicted)) + 
+div_3km <- ggplot(p3kmc, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
   coord_cartesian(clip = "off") +
-  scale_y_continuous(limits = c(0,2.5), expand = c(0,0)) +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,15), expand = c(0,0)) +
   labs(x = "AES 3km ('000s)", y = "Predicted Butterfly diversity") +
   NULL
 div_3km
@@ -390,3 +477,7 @@ ggsave(paste0(modpath,"Combined plots/Butterfly diversity combined 1km and 3km i
 abund_1km + abund_3km + div_1km + div_3km + rich_1km + rich_3km + plot_layout(guides = 'collect', ncol = 2) &
   theme(legend.position = "bottom")
 ggsave(paste0(modpath,"Combined plots/All integrated plots combined.png"), height = 1600, width = 1100, units = "mm", scale = 0.15)
+
+
+
+
