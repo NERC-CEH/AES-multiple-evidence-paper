@@ -127,7 +127,7 @@ p3$group <- "UKBMS"
 
 
 p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 low_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -191,7 +191,7 @@ p3$group <- "UKBMS"
 
 
 p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 low_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -270,7 +270,7 @@ p3$group <- "UKBMS"
 
 
 p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-mutate(x = (x*5000 + 3000)/1000)
+plyr::mutate(x = (x*5000 + 3000)/1000)
 med_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -333,8 +333,8 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
-mutate(x = (x*5000 + 3000)/1000)
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
+plyr::mutate(x = (x*5000 + 3000)/1000)
 med_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -413,7 +413,7 @@ p3$group <- "UKBMS"
 
 
 p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-mutate(x = (x*5000 + 3000)/1000)
+plyr::mutate(x = (x*5000 + 3000)/1000)
 high_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -476,7 +476,7 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-mutate(x = (x*5000 + 3000)/1000)
+plyr::mutate(x = (x*5000 + 3000)/1000)
 high_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -504,41 +504,11 @@ high_1km + high_3km + plot_layout(guides='collect') &
 ggsave(paste0(modpath,"Combined plots/Butterfly abundance combined 1km and 3km high mobility.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
 
 
-#####Add z test equivalent by calculating difference between posteriors and then assessing overlap with 1
+## all plots combined
 
-
-
-#try idea of z test to test similarity
-ztest <- function(mod1, mod2, term){
-  p <- vector(); z <- vector()
-  for (i in term){
-    b1 <- summary(mod1)$fixed[row.names(summary(mod1)$fixed) == i,1]
-    b2 <- summary(mod2)$fixed[row.names(summary(mod2)$fixed) == i,1]
-    se1 <- sqrt(diag(vcov(mod1)))[names(sqrt(diag(vcov(mod1)))) == i]
-    se2 <- sqrt(diag(vcov(mod2)))[names(sqrt(diag(vcov(mod2)))) == i]
-    z[which(term == i)] <- (b1-b2)/(sqrt((se1^2) + (se2^2)))
-    p[which(term == i)] <- 2*pnorm(abs(z[which(term == i)]), lower.tail = FALSE)
-  }
-  z.df <- data.frame(term = term, z = z, p = p)
-  return(z.df)
-}
-
-#richness
-ztest(Low_LS_mod, Low_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-ztest(Low_LS_mod, Low_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-ztest(Low_UKBMS_mod, Low_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-
-#abundance
-ztest(Med_LS_mod, Med_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-ztest(Med_LS_mod, Med_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-ztest(Med_UKBMS_mod, Med_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-
-#diversity
-ztest(High_LS_mod, High_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-ztest(High_LS_mod, High_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-ztest(High_UKBMS_mod, High_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))#OK
-#richness and abundance definitely OK, diversity borderline
-#may need to remove UKBMS from abundance and diversity?
+low_1km + low_3km + med_1km + med_3km + high_1km + high_3km + plot_layout(guides = 'collect', ncol = 2) &
+  theme(legend.position = "bottom")
+ggsave(paste0(modpath,"Combined plots/All mobility individual scheme plots combined.png"), height = 1800, width = 1100, units = "mm", scale = 0.15)
 
 
 

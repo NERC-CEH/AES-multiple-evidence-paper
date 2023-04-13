@@ -8,3 +8,4 @@ config.yml
 *.png
 *.db
 /Data/
+*.RDS
