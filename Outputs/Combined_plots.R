@@ -73,14 +73,23 @@ AES_data <- smartbind(Rich_LS_mod$data, Rich_WCBS_mod$data, Rich_UKBMS_mod$data)
 AES_data$SURVEY <- c(rep("LandSpAES", nrow(Rich_LS_mod$data)),
                          rep("WCBS", nrow(Rich_WCBS_mod$data)),
                      rep("UKBMS", nrow(Rich_UKBMS_mod$data)))
+AES_data$AES3KM <- (AES_data$AES3KM*5000 + 3000)/1000
 
+mutate(x = (x*5000 + 3000)/1000)
 ggplot(AES_data, aes(x = AES1KM, fill = SURVEY))+
   geom_density(alpha = .25)
 ggplot(AES_data, aes(x = AES3KM, fill = SURVEY))+
   geom_density(alpha = .25)+
-  xlab("Landscape AES score") +
+  xlab("Landscape AES score ('000s)") +
   ylab("Density")+
   scale_fill_manual(values = c("#F8766D", "#619CFF", "#00BA38"))
+
+ggplot(AES_data, aes(x = AES3KM, fill = SURVEY))+
+  geom_density(alpha = .25)+
+  xlab("Landscape AES score ('000s)") +
+  ylab("Density")+
+  scale_fill_manual(values = c("#F8766D", "#619CFF", "#00BA38"))+
+  coord_cartesian(xlim=c(15, 40), ylim = c(0,0.02))
 
 ###
 
@@ -124,27 +133,39 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
+p1_raw <- attr(p1, "rawdata")
+p2_raw <- attr(p2, "rawdata")
+p3_raw <- attr(p3, "rawdata")
 
-p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+p1_raw$group <- "LandSpAES"
+p2_raw$group <- "WCBS"
+p3_raw$group <- "UKBMS"
+
+p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+  #mutate(x = (x*5000 + 3000)/1000)
 rich_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
-              alpha = 0.3, colour = NA) +
-  geom_line() +
+ 
   # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
   #          sides = "b") +
   # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
   #          sides = "t") +
   # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
   #          sides = "t", outside = TRUE) +
+  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.5, colour = NA) +
+  geom_line(linewidth = 1.5) +
   coord_cartesian(clip = "off") +
   scale_fill_manual(aesthetics = c("fill","colour"),
                     values = my_col,
                     name = "Survey") +
-  scale_y_continuous(limits = c(0,30), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0,40), expand = c(0,0)) +
   # scale_x_continuous(limits = c(0,74000)) +
   labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Richness") +
   NULL
+
 rich_1km
 
 ggsave(paste0(modpath,"Combined plots/Butterfly richness 1km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
