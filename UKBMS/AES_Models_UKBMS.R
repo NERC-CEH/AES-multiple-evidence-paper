@@ -56,6 +56,29 @@ UKBMS_all_data <- UKBMS_RESPONSES %>%
          YRnm = YEAR - 2016,
          YRnm2 = as.numeric(as.factor(YEAR)))
 summary(UKBMS_all_data)
+
+#for csv
+# UKBMS_all_data <- UKBMS_RESPONSES %>%
+#   inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "GRIDREF","YEAR")) %>%
+#   left_join(ukbms_aes, by = c("buttsurv.GRIDREF_1km" = "CELLCODE","YEAR" = "Year")) %>%
+#   ungroup() %>%
+#   filter(AES1KM < 50000) %>%
+#   select(!c(Low_mobility_abund, Med_mobility_abund, High_mobility_abund, EAST, NORTH, buttsurv.GRIDREF_1km))
+# 
+# UKBMS_all_data$SITENO <- paste0("SITE_",as.numeric(factor(UKBMS_all_data$SITENO))) 
+# 
+# write.csv(UKBMS_all_data, "UKBMS butterfly data.csv")
+
+# UKBMS_all_data <- UKBMS_all_data %>%
+#   mutate(YR = as.factor(YEAR),
+#          AES1KM = (AES1KM-3000)/5000,
+#          AES3KM = (AES3KM-3000)/5000,
+#          TRANSECT_LENGTH_NEW = TRANSECT_LENGTH_NEW/1000,
+#          N_VISITS_MAYTOAUGUST = N_VISITS_MAYTOAUGUST/10,
+#          YRnm = YEAR - 2016,
+#          YRnm2 = as.numeric(as.factor(YEAR)))
+# summary(UKBMS_all_data)
+
 # psych::multi.hist(select_if(UKBMS_all_data, is.numeric))
 # par(mfrow=c(1,1))
 

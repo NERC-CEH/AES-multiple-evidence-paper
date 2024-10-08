@@ -81,6 +81,10 @@ buttrich$SURVEY_SQUARE <- sapply(strsplit(buttrich$SURVEY_SQUARE, "\\/"),functio
 buttrich <- merge(buttrich, PCA, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("GRIDREF", "YEAR"))
 
 
+# buttrich$SURVEY_SQUARE <- paste0("SQ_",as.numeric(factor(buttrich$SURVEY_SQUARE)))
+# buttrich <- subset(buttrich, select = -NCA)
+# write.csv(buttrich, "LandSpAES butterfly richness.csv")
+
 
 #' Plot histogram of data
 #' 

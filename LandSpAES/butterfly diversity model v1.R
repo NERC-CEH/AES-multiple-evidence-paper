@@ -99,7 +99,9 @@ buttdiv$SURVEY_SQUARE <- sapply(strsplit(buttdiv$SURVEY_SQUARE, "\\/"),function(
 
 buttdiv <- merge(buttdiv, PCA, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("GRIDREF", "YEAR"))
 
-
+# buttdiv$SURVEY_SQUARE <- paste0("SQ_",as.numeric(factor(buttdiv$SURVEY_SQUARE)))
+# buttdiv <- subset(buttdiv, select = -NCA)
+# write.csv(buttdiv, "LandSpAES butterfly diversity.csv")
 
 #check diversity is normally distributed
 hist(exp(buttdiv$SHANNON_DIV))

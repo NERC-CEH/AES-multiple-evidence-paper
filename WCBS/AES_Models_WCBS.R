@@ -54,6 +54,31 @@ WCBS_all_data <- wcbs_responses %>%
          YRnm = YEAR - 2016,
          YRnm2 = as.numeric(as.factor(YEAR)))
 summary(WCBS_all_data)
+
+
+# WCBS_all_data <- wcbs_responses %>%
+#   inner_join(PCA, by = c("buttsurv.GRIDREF_1km" = "GRIDREF","YEAR")) %>%
+#   inner_join(wcbs_aes, by = c("buttsurv.GRIDREF_1km" = "CELLCODE","YEAR")) %>%
+#   ungroup() %>% 
+#   filter(AES1KM < 50000) %>%
+#   select(!c(Low_mobility_abund, Med_mobility_abund, High_mobility_abund, EAST, NORTH, buttsurv.GRIDREF_1km))
+# 
+# WCBS_all_data$SITENO <- paste0("SITE_",as.numeric(factor(WCBS_all_data$SITENO)))
+# 
+# write.csv(WCBS_all_data, "WCBS butterfly data.csv")
+# 
+# WCBS_all_data <- WCBS_all_data %>%
+#   mutate(YR = as.factor(YEAR),
+#          AES1KM = (AES1KM-3000)/5000,
+#          AES3KM = (AES3KM-3000)/5000,
+#          TRANSECT_LENGTH = TRANSECT_LENGTH/1000,
+#          N_VISITS_MAYTOAUGUST = N_VISITS_MAYTOAUGUST/10,
+#          YRnm = YEAR - 2016,
+#          YRnm2 = as.numeric(as.factor(YEAR)))
+# summary(WCBS_all_data)
+
+
+
 # psych::multi.hist(select_if(WCBS_all_data, is.numeric))
 # par(mfrow=c(1,1))
 

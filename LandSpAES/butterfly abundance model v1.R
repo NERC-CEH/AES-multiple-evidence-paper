@@ -63,6 +63,9 @@ buttabund$SURVEY_SQUARE <- sapply(strsplit(buttabund$SURVEY_SQUARE, "\\/"),funct
 
 buttabund <- merge(buttabund, PCA, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("GRIDREF", "YEAR"))
 
+# buttabund$SURVEY_SQUARE <- paste0("SQ_",as.numeric(factor(buttabund$SURVEY_SQUARE)))
+# buttabund <- subset(buttabund, select = -NCA)
+# write.csv(buttabund, "LandSpAES butterfly abundance.csv")
 
 #' Look at distribution of abundance variable
 
