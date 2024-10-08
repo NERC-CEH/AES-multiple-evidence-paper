@@ -1,15 +1,8 @@
 ###Basic abundance models
 
-
-analysis_group <- "Headline analyses"
-analysis_name <- "Butterfly abundance"
-plot_name <- "Total count of butterflies"
-
-
 library(lme4)
 library(effects)
 library(tidyverse)
-library(DHARMa)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -17,61 +10,10 @@ theme_set(theme_classic())
 library(brms)
 
 
+modpath <- getwd()
 
-# load file paths
-dir <- config::get()
-pcapath <- dir$directories$pcadata
-modpath <- dir$directories$models
+buttabund <- read.csv("LandSpAES butterfly abundance.csv")
 
-# source data
-source("LandSpAES/collate butterfly data.R")
-
-# source function
-source("LandSpAES/functions_script.R")
-
-#PCA scores
-
-PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
-  dplyr::select(-X)
-
-
-
-
-#' **Calculate BUTTERFLY abundance - aggregated**
-
-buttabund <- aggregate(BUTTERFLY_COUNT ~ NCA + SURVEY_SQUARE + SURVEY_YEAR + AES1KM + AES3KM, data = buttcount2, FUN = function(x) sum(x))
-#90 observations
-
-buttrounds <- aggregate(ROUND_NUMBER ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttcount2, FUN = function(x) length(unique(x)))
-
-buttabund <- merge(buttabund, buttrounds, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-#sunshine
-buttsun <- aggregate(PERC_SUN ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvariables, FUN = function(x) mean(x, na.rm = TRUE))
-
-buttabund <- merge(buttabund, buttsun, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-#temperature
-butttemp <- aggregate(SURVEY_TEMP_SHADE ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvisit, FUN = function(x) mean(x, na.rm = TRUE))
-
-buttabund <- merge(buttabund, butttemp, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-#PCA scores
-
-#need to remove half square for matching to PCA scores
-buttabund$SURVEY_SQUARE <- sapply(strsplit(buttabund$SURVEY_SQUARE, "\\/"),function(x) x[1])
-
-buttabund <- merge(buttabund, PCA, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("GRIDREF", "YEAR"))
-
-# buttabund$SURVEY_SQUARE <- paste0("SQ_",as.numeric(factor(buttabund$SURVEY_SQUARE)))
-# buttabund <- subset(buttabund, select = -NCA)
-# write.csv(buttabund, "LandSpAES butterfly abundance.csv")
-
-#' Look at distribution of abundance variable
-
-fit_distrib(buttabund, 'BUTTERFLY_COUNT')
-
-# fits negative binomial fairly well
 
 #' Rescale predictors and fit model
 #' 

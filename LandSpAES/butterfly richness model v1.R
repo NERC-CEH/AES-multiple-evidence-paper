@@ -1,12 +1,5 @@
 ###Basic richness models
 
-homedir <- getwd()
-
-analysis_group <- "Headline analyses"
-analysis_name <- "Butterfly species richness"
-plot_name <- "Total butterfly species richness"
-
-
 library(reshape)
 library(reshape2)
 library(vegan)
@@ -21,77 +14,9 @@ theme_set(theme_classic())
 library(brms)
 
 
-# folder setup for saving
-dir <- config::get()
-pcapath <- dir$directories$pcadata
-modpath <- dir$directories$models
+modpath <- getwd()
 
-# source data
-source("LandSpAES/collate butterfly data.R")
-
-# source function
-source("LandSpAES/functions_script.R")
-
-
-#PCA scores
-
-PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
-  dplyr::select(-X)
-
-
-##Now aggregate data for models
-
-
-
-buttcount2$RICHNESS_ID <- buttcount2$BUTTERFLY_ID
-
-#remove "other butterflies" id
-
-buttcount2$RICHNESS_ID[buttcount2$RICHNESS_ID == 65] <- NA
-
-
-length(buttcount2$RICHNESS_ID[is.na(buttcount2$RICHNESS_ID)])
-# 1898/19093 no butterflies
-
-
-##aggregate data
-
-buttrich <- aggregate(RICHNESS_ID ~ NCA + SURVEY_SQUARE + SURVEY_YEAR + AES1KM + AES3KM, data = buttcount2, FUN = function(x) length(unique(x[!is.na(x)])), na.action = na.pass)
-#should be 198 rows long = (54 squares*3 years) + 36 squares for year 1
-
-buttrounds <- aggregate(ROUND_NUMBER ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttcount2, FUN = function(x) length(unique(x)))
-
-buttrich <- merge(buttrich, buttrounds, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-#sunshine
-buttsun <- aggregate(PERC_SUN ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvariables, FUN = function(x) mean(x, na.rm = TRUE))
-
-buttrich <- merge(buttrich, buttsun, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-#temperature
-butttemp <- aggregate(SURVEY_TEMP_SHADE ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvisit, FUN = function(x) mean(x, na.rm = TRUE))
-
-buttrich <- merge(buttrich, butttemp, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-
-
-#need to remove half square for matching to PCA scores
-buttrich$SURVEY_SQUARE <- sapply(strsplit(buttrich$SURVEY_SQUARE, "\\/"),function(x) x[1])
-
-buttrich <- merge(buttrich, PCA, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("GRIDREF", "YEAR"))
-
-
-# buttrich$SURVEY_SQUARE <- paste0("SQ_",as.numeric(factor(buttrich$SURVEY_SQUARE)))
-# buttrich <- subset(buttrich, select = -NCA)
-# write.csv(buttrich, "LandSpAES butterfly richness.csv")
-
-
-#' Plot histogram of data
-#' 
-fit_distrib(buttrich, 'RICHNESS_ID')
-
-#not much evidence of over or underdispersion, use Poisson
-
+buttrich <- read.csv("LandSpAES butterfly richness.csv")
 
 
 #scale predictors

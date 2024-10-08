@@ -1,18 +1,12 @@
 ## Butterfly diversity models
 
 
-analysis_group <- "Headline analyses"
-analysis_name <- "Butterfly diversity"
-plot_name <- "Butterfly Shannon diversity index"
-
-
 library(reshape)
 library(reshape2)
 library(vegan)
 library(nlme)
 library(tidyverse)
 library(effects)
-library(DHARMa)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -20,94 +14,12 @@ theme_set(theme_classic())
 library(brms)
 
 
-# folder setup for saving
-dir <- config::get()
-pcapath <- dir$directories$pcadata
-modpath <- dir$directories$models
+modpath <- getwd()
 
-# data collation and aggregation
-source("LandSpAES/collate butterfly data.R")
-
-# functions
-source("LandSpAES/functions_script.R")
-
-
-
-PCA <- read.csv(paste0(pcapath,"PCA scores for CS and LandSpAES squares.csv")) %>%
-  dplyr::select(-X)
-
-
-
-
-
-##Now aggregate data for models
-
-
-
-buttcount2$RICHNESS_ID <- buttcount2$BUTTERFLY_ID
-
-#remove "other butterflies" id
-
-buttcount2$RICHNESS_ID[buttcount2$RICHNESS_ID == 65] <- NA
-
-
-length(buttcount2$RICHNESS_ID[is.na(buttcount2$RICHNESS_ID)])
-# 1253/14266 no butterflies
-
-
-
-#calculate vector of richness species
-richness_bb <- unique(buttcount2$RICHNESS_ID[!is.na(buttcount2$RICHNESS_ID)])
-
-#need unique combination of square and year...
-
-buttcount2$SQ_YR <- paste(buttcount2$SURVEY_SQUARE, buttcount2$SURVEY_YEAR, sep = "_")
-
-#create a species by site table for just the species with SPECIES_RICHNESS_SPECIES entries aggregated at the square level
-c1 <- cast(buttcount2, SQ_YR ~ RICHNESS_ID, value = "BUTTERFLY_COUNT", fun.aggregate = "sum", fill = 0, subset = RICHNESS_ID %in% richness_bb)
-
-#use the vegan package to calculate the Shannon diversity index
-c1$shann <- diversity(c1[,2:35], index = "shannon")
-
-
-#' Add the Shannon index to the buttcount2 table (note all observations in the same square will get the same entry)
-#' 
-buttcount2$SHANNON_DIV <- c1$shann[match(buttcount2$SQ_YR, c1$SQ_YR)]
-
-#' Aggregate across rounds and transect section lengths taking the mean Shannon diversity index (can compare with values from c1 to check this is correct)
-buttdiv <- aggregate(SHANNON_DIV ~ NCA + SURVEY_SQUARE + SURVEY_YEAR + AES1KM + AES3KM, data = buttcount2, FUN = function(x) mean(x), na.action = na.pass)
-
-buttrounds <- aggregate(ROUND_NUMBER ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttcount2, FUN = function(x) length(unique(x)))
-
-buttdiv <- merge(buttdiv, buttrounds, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-#sunshine
-buttsun <- aggregate(PERC_SUN ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvariables, FUN = function(x) mean(x, na.rm = TRUE))
-
-buttdiv <- merge(buttdiv, buttsun, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-#temperature
-butttemp <- aggregate(SURVEY_TEMP_SHADE ~ SURVEY_SQUARE + SURVEY_YEAR, data = buttvisit, FUN = function(x) mean(x, na.rm = TRUE))
-
-buttdiv <- merge(buttdiv, butttemp, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("SURVEY_SQUARE", "SURVEY_YEAR"))
-
-
-#PCA scores
-
-#need to remove half square for matching to PCA scores
-buttdiv$SURVEY_SQUARE <- sapply(strsplit(buttdiv$SURVEY_SQUARE, "\\/"),function(x) x[1])
-
-buttdiv <- merge(buttdiv, PCA, by.x = c("SURVEY_SQUARE", "SURVEY_YEAR"), by.y = c("GRIDREF", "YEAR"))
-
-# buttdiv$SURVEY_SQUARE <- paste0("SQ_",as.numeric(factor(buttdiv$SURVEY_SQUARE)))
-# buttdiv <- subset(buttdiv, select = -NCA)
-# write.csv(buttdiv, "LandSpAES butterfly diversity.csv")
+buttdiv <- read.csv("LandSpAES butterfly diversity.csv")
 
 #check diversity is normally distributed
 hist(exp(buttdiv$SHANNON_DIV))
-
-
-
 
 
 #scale AES variables
