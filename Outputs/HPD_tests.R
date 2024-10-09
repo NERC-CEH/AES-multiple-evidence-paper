@@ -4,8 +4,7 @@
 library(HDInterval)
 
 # folder setup for saving
-dir <- config::get()
-modpath <- dir$directories$models
+modpath <- getwd()
 
 
 Rich_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Richness_brm.RDS"))
@@ -64,52 +63,6 @@ t4$term <- rep(c("AES1KM", "AES3KM", "AES1KM:AES3KM"),3)
 t4$Response <- "Diversity"
 Div_HPD <- t4
 
-##Mobility models
-
-Lowmob_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Lowmob_Abundance_brm.RDS"))
-Lowmob_WCBS_mod <- readRDS(paste0(modpath, "WCBS_LM_Abundance_brm.RDS"))
-Lowmob_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_LM_Abundance_brm.RDS"))
-
-Medmob_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Medmob_Abundance_brm.RDS"))
-Medmob_WCBS_mod <- readRDS(paste0(modpath, "WCBS_MM_Abundance_brm.RDS"))
-Medmob_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_MM_Abundance_brm.RDS"))
-
-Highmob_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Highmob_Abundance_brm.RDS"))
-Highmob_WCBS_mod <- readRDS(paste0(modpath, "WCBS_HM_Abundance_brm.RDS"))
-Highmob_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_HM_Abundance_brm.RDS"))
-
-
-
-t1 <- HPD_test(Lowmob_LS_mod, Lowmob_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t2 <- HPD_test(Lowmob_LS_mod, Lowmob_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t3 <- HPD_test(Lowmob_UKBMS_mod, Lowmob_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t4 <- as.data.frame(rbind(t1,t2,t3))
-row.names(t4) <- c("LS-WCBS", "LS-UKBMS", "UKBMS-WCBS")
-names(t4) <- c("AES1KM", "AES3KM", "AES1KM:AES3KM")
-t4$Response <- "LowMob_Abundance"
-LowMob_Abund_HPD <- t4
-
-t1 <- HPD_test(Medmob_LS_mod, Medmob_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t2 <- HPD_test(Medmob_LS_mod, Medmob_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t3 <- HPD_test(Medmob_UKBMS_mod, Medmob_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t4 <- as.data.frame(rbind(t1,t2,t3))
-row.names(t4) <- c("LS-WCBS", "LS-UKBMS", "UKBMS-WCBS")
-names(t4) <- c("AES1KM", "AES3KM", "AES1KM:AES3KM")
-t4$Response <- "MedMob_Abundance"
-MedMob_Abund_HPD <- t4
-
-t1 <- HPD_test(Highmob_LS_mod, Highmob_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t2 <- HPD_test(Highmob_LS_mod, Highmob_UKBMS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t3 <- HPD_test(Highmob_UKBMS_mod, Highmob_WCBS_mod, c("AES1KM", "AES3KM", "AES1KM:AES3KM"))
-t4 <- as.data.frame(rbind(t1,t2,t3))
-row.names(t4) <- c("LS-WCBS", "LS-UKBMS", "UKBMS-WCBS")
-names(t4) <- c("AES1KM", "AES3KM", "AES1KM:AES3KM")
-t4$Response <- "HighMob_Abundance"
-HighMob_Abund_HPD <- t4
-
-
-all_HPD <- rbind(Rich_HPD, Div_HPD, Abund_HPD, LowMob_Abund_HPD, MedMob_Abund_HPD, HighMob_Abund_HPD)
-write.csv(all_HPD, "HPDI checks.csv")
 
 all_HPD <- rbind(Rich_HPD, Div_HPD, Abund_HPD)
 write.csv(all_HPD, "HPDI checks - intervals.csv")

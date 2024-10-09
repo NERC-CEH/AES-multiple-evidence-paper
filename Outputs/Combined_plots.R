@@ -16,8 +16,7 @@ library(patchwork)
 library(gtools)
 
 # folder setup for saving
-dir <- config::get()
-modpath <- dir$directories$models
+modpath <- getwd()
 
 my_col <- unname(palette.colors()[c(8,3,4)])
 
@@ -35,7 +34,7 @@ Div_WCBS_mod <- readRDS(paste0(modpath, "WCBS_Diversity_brm.RDS"))
 Div_UKBMS_mod <- readRDS(paste0(modpath, "UKBMS_Diversity_brm.RDS"))
 
 
-#result tables AES effects only (for reference in BES talk)
+#result tables AES effects only
 
 
 m1 <- summary(Rich_LS_mod)$fixed[c(2:3,11),]
@@ -66,7 +65,7 @@ range(Rich_LS_mod$data$AES1KM)
 range(Rich_WCBS_mod$data$AES1KM)
 range(Rich_UKBMS_mod$data$AES1KM)
 
-## add AES score histograms for BES
+## add AES score histograms
 
 
 AES_data <- smartbind(Rich_LS_mod$data, Rich_WCBS_mod$data, Rich_UKBMS_mod$data)
@@ -75,7 +74,7 @@ AES_data$SURVEY <- c(rep("LandSpAES", nrow(Rich_LS_mod$data)),
                      rep("UKBMS", nrow(Rich_UKBMS_mod$data)))
 AES_data$AES3KM <- (AES_data$AES3KM*5000 + 3000)/1000
 
-mutate(x = (x*5000 + 3000)/1000)
+#mutate(x = (x*5000 + 3000)/1000)
 ggplot(AES_data, aes(x = AES1KM, fill = SURVEY))+
   geom_density(alpha = .25)
 ggplot(AES_data, aes(x = AES3KM, fill = SURVEY))+
@@ -141,8 +140,7 @@ p1_raw$group <- "LandSpAES"
 p2_raw$group <- "WCBS"
 p3_raw$group <- "UKBMS"
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
-  #mutate(x = (x*5000 + 3000)/1000)
+p4 <- do.call(rbind, list(p2, p1, p3)) 
 rich_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
  
   # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
@@ -151,12 +149,12 @@ rich_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) 
   #          sides = "t") +
   # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
   #          sides = "t", outside = TRUE) +
-  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
-  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
-  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  # geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  # geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  # geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
-              alpha = 0.5, colour = NA) +
-  geom_line(linewidth = 1.5) +
+              alpha = 0.3, colour = NA) +
+  geom_line() +
   coord_cartesian(clip = "off") +
   scale_fill_manual(aesthetics = c("fill","colour"),
                     values = my_col,
@@ -210,8 +208,8 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+  #mutate(x = (x*5000 + 3000)/1000)
 rich_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -289,8 +287,8 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+  #mutate(x = (x*5000 + 3000)/1000)
 abund_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -353,8 +351,8 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+  #mutate(x = (x*5000 + 3000)/1000)
 abund_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -432,8 +430,8 @@ p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
 
-p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+  #mutate(x = (x*5000 + 3000)/1000)
 div_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
@@ -495,8 +493,8 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
-p4 <- do.call(rbind, list(p2, p1, p3)) %>%
-  mutate(x = (x*5000 + 3000)/1000)
+p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
+  #mutate(x = (x*5000 + 3000)/1000)
 div_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
