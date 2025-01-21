@@ -18,7 +18,7 @@ library(gtools)
 # folder setup for saving
 modpath <- getwd()
 
-my_col <- unname(palette.colors()[c(8,3,4)])
+my_col <- c("#D55E00","#56B4E9", "#009E73")
 
 
 Rich_LS_mod <- readRDS(paste0(modpath, "LandSpAES_Richness_brm.RDS"))
@@ -56,7 +56,7 @@ m8$Model <- "Div_UKBMS"
 m9 <- summary(Div_WCBS_mod)$fixed[c(2:3,11),]
 m9$Model <- "Div_WCBS"
 
-write.csv(rbind(m1,m2,m3,m4,m5,m6,m7,m8,m9), "Results_summary.csv")
+#write.csv(rbind(m1,m2,m3,m4,m5,m6,m7,m8,m9), "Results_summary.csv")
 
 
 
@@ -72,22 +72,21 @@ AES_data <- smartbind(Rich_LS_mod$data, Rich_WCBS_mod$data, Rich_UKBMS_mod$data)
 AES_data$SURVEY <- c(rep("LandSpAES", nrow(Rich_LS_mod$data)),
                          rep("WCBS", nrow(Rich_WCBS_mod$data)),
                      rep("UKBMS", nrow(Rich_UKBMS_mod$data)))
-AES_data$AES3KM <- (AES_data$AES3KM*5000 + 3000)/1000
-
-#mutate(x = (x*5000 + 3000)/1000)
+AES_data$AES3KM <- (AES_data$AES3KM*5000 + 3000)/1000 
+  
 ggplot(AES_data, aes(x = AES1KM, fill = SURVEY))+
   geom_density(alpha = .25)
 ggplot(AES_data, aes(x = AES3KM, fill = SURVEY))+
   geom_density(alpha = .25)+
-  xlab("Landscape AES score ('000s)") +
+  xlab("Landscape (3km) AES gradient score ('000s)") +
   ylab("Density")+
-  scale_fill_manual(values = c("#F8766D", "#619CFF", "#00BA38"))
+  scale_fill_manual(values = c("#D55E00","#56B4E9", "#009E73"))
 
 ggplot(AES_data, aes(x = AES3KM, fill = SURVEY))+
   geom_density(alpha = .25)+
-  xlab("Landscape AES score ('000s)") +
+  xlab("Landscape (3km) AES gradient score ('000s)") +
   ylab("Density")+
-  scale_fill_manual(values = c("#F8766D", "#619CFF", "#00BA38"))+
+  scale_fill_manual(values = c("#D55E00","#56B4E9", "#009E73"))+
   coord_cartesian(xlim=c(15, 40), ylim = c(0,0.02))
 
 ###
@@ -132,27 +131,23 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
-p1_raw <- attr(p1, "rawdata")
-p2_raw <- attr(p2, "rawdata")
-p3_raw <- attr(p3, "rawdata")
+p1_raw <- attr(p1, "rawdata")%>%
+ mutate(x = (x*5000 + 3000)/1000)
+p2_raw <- attr(p2, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p3_raw <- attr(p3, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
 
 p1_raw$group <- "LandSpAES"
 p2_raw$group <- "WCBS"
 p3_raw$group <- "UKBMS"
 
-p4 <- do.call(rbind, list(p2, p1, p3)) 
+p4 <- do.call(rbind, list(p2, p1, p3))  %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 rich_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
  
-  # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
-  #          sides = "b") +
-  # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t") +
-  # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t", outside = TRUE) +
-  # geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
-  # geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
-  # geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
-   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+
+     geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
   coord_cartesian(clip = "off") +
@@ -161,12 +156,33 @@ rich_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) 
                     name = "Survey") +
   scale_y_continuous(limits = c(0,40), expand = c(0,0)) +
   # scale_x_continuous(limits = c(0,74000)) +
-  labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Richness") +
+  labs(x = "Local (1km) AES gradient score ('000s)", y = "Predicted Butterfly Richness") +
   NULL
 
 rich_1km
 
-ggsave(paste0(modpath,"Combined plots/Butterfly richness 1km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+rich_1km_raw <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
+  
+  
+  
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,40), expand = c(0,0)) +
+  # scale_x_continuous(limits = c(0,74000)) +
+  labs(x = "Local (1km) AES gradient score ('000s)", y = "Predicted Butterfly Richness") +
+  NULL
+
+rich_1km_raw
+
+#ggsave(paste0(modpath,"Combined plots/Butterfly richness 1km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 ##3km plots
 
@@ -207,34 +223,56 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
+p1_raw <- attr(p1, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p2_raw <- attr(p2, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p3_raw <- attr(p3, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
-  #mutate(x = (x*5000 + 3000)/1000)
+p1_raw$group <- "LandSpAES"
+p2_raw$group <- "WCBS"
+p3_raw$group <- "UKBMS"
+
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 rich_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
-  # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
-  #          sides = "b") +
-  # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t") +
-  # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t", outside = TRUE) +
   coord_cartesian(clip = "off") +
   scale_fill_manual(aesthetics = c("fill","colour"),
                     values = my_col,
                     name = "Survey") +
-  scale_y_continuous(limits = c(0,30), expand = c(0,0)) +
+  scale_y_continuous(limits = c(0,0), expand = c(0,0)) +
   # scale_x_continuous(limits = c(0,74000)) +
-  labs(x = "AES 3km ('000s)", y = "Predicted Butterfly Richness") +
+  labs(x = "Landscape (3km) AES gradient score ('000s)", y = "Predicted Butterfly Richness") +
   NULL
 rich_3km
 
-ggsave(paste0(modpath,"Combined plots/Butterfly richness 3km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+rich_3km_raw <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,40), expand = c(0,0)) +
+  # scale_x_continuous(limits = c(0,74000)) +
+  labs(x = "Landscape (3km) AES gradient score ('000s)", y = "Predicted Butterfly Richness") +
+  NULL
+rich_3km_raw
+
+#ggsave(paste0(modpath,"Combined plots/Butterfly richness 3km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 rich_1km + rich_3km + plot_layout(guides='collect') &
   theme(legend.position='bottom')
-ggsave(paste0(modpath,"Combined plots/Butterfly richness combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
+#ggsave(paste0(modpath,"Combined plots/Butterfly richness combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
 
 
 
@@ -286,30 +324,51 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
+p1_raw <- attr(p1, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p2_raw <- attr(p2, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p3_raw <- attr(p3, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
-  #mutate(x = (x*5000 + 3000)/1000)
+p1_raw$group <- "LandSpAES"
+p2_raw$group <- "WCBS"
+p3_raw$group <- "UKBMS"
+
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 abund_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
-  # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
-  #          sides = "b") +
-  # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t") +
-  # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t", outside = TRUE) +
   coord_cartesian(clip = "off") +
   scale_fill_manual(aesthetics = c("fill","colour"),
                     values = my_col,
                     name = "Survey") +
   scale_y_continuous(limits = c(0,1000), expand = c(0,0)) +
   # scale_x_continuous(limits = c(0,74000)) +
-  labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Abundance") +
+  labs(x = "Local (1km) AES gradient score ('000s)", y = "Predicted Butterfly Abundance") +
   NULL
 abund_1km
 
-ggsave(paste0(modpath,"Combined plots/Butterfly abundance 1km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+abund_1km_raw <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,2000), expand = c(0,0)) +
+  # scale_x_continuous(limits = c(0,74000)) +
+  labs(x = "Local (1km) AES gradient score ('000s)", y = "Predicted Butterfly Abundance") +
+  NULL
+abund_1km_raw
+
+#ggsave(paste0(modpath,"Combined plots/Butterfly abundance 1km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 ##3km plots
 
@@ -350,34 +409,56 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
+p1_raw <- attr(p1, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p2_raw <- attr(p2, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p3_raw <- attr(p3, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
-  #mutate(x = (x*5000 + 3000)/1000)
+p1_raw$group <- "LandSpAES"
+p2_raw$group <- "WCBS"
+p3_raw$group <- "UKBMS"
+
+
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 abund_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
-  # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
-  #          sides = "b") +
-  # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t") +
-  # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t", outside = TRUE) +
   coord_cartesian(clip = "off") +
   scale_fill_manual(aesthetics = c("fill","colour"),
                     values = my_col,
                     name = "Survey") +
   scale_y_continuous(limits = c(0,1000), expand = c(0,0)) +
   # scale_x_continuous(limits = c(0,74000)) +
-  labs(x = "AES 3km ('000s)", y = "Predicted Butterfly Abundance") +
+  labs(x = "Landscape (3km) AES gradient score ('000s)", y = "Predicted Butterfly Abundance") +
   NULL
 abund_3km
 
-ggsave(paste0(modpath,"Combined plots/Butterfly abundance 3km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+
+abund_3km_raw <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,2000), expand = c(0,0)) +
+  # scale_x_continuous(limits = c(0,74000)) +
+  labs(x = "Landscape (3km) AES gradient score ('000s)", y = "Predicted Butterfly Abundance") +
+  NULL
+abund_3km_raw
+#ggsave(paste0(modpath,"Combined plots/Butterfly abundance 3km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 abund_1km + abund_3km + plot_layout(guides='collect') &
   theme(legend.position='bottom')
-ggsave(paste0(modpath,"Combined plots/Butterfly abundance combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
+#ggsave(paste0(modpath,"Combined plots/Butterfly abundance combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
 
 
 
@@ -429,30 +510,51 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
+p1_raw <- attr(p1, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p2_raw <- attr(p2, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p3_raw <- attr(p3, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
-  #mutate(x = (x*5000 + 3000)/1000)
+p1_raw$group <- "LandSpAES"
+p2_raw$group <- "WCBS"
+p3_raw$group <- "UKBMS"
+
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 div_1km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
-  # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
-  #          sides = "b") +
-  # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t") +
-  # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t", outside = TRUE) +
   coord_cartesian(clip = "off") +
   scale_fill_manual(aesthetics = c("fill","colour"),
                     values = my_col,
                     name = "Survey") +
   scale_y_continuous(limits = c(0,15), expand = c(0,0)) +
   # scale_x_continuous(limits = c(0,74000)) +
-  labs(x = "AES 1km ('000s)", y = "Predicted Butterfly Diversity") +
+  labs(x = "Local (1km) AES gradient score ('000s)", y = "Predicted Butterfly Diversity") +
   NULL
 div_1km
 
-ggsave(paste0(modpath,"Combined plots/Butterfly diversity 1km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+div_1km_raw <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +
+  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  coord_cartesian(clip = "off") +
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,18), expand = c(0,0)) +
+  # scale_x_continuous(limits = c(0,74000)) +
+  labs(x = "Local (1km) AES gradient score ('000s)", y = "Predicted Butterfly Diversity") +
+  NULL
+div_1km_raw
+
+#ggsave(paste0(modpath,"Combined plots/Butterfly diversity 1km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 ##3km plots
 
@@ -493,39 +595,63 @@ p1$group <- "LandSpAES"
 p2$group <- "WCBS"
 p3$group <- "UKBMS"
 
-p4 <- do.call(rbind, list(p2, p1, p3)) #%>%
-  #mutate(x = (x*5000 + 3000)/1000)
+p1_raw <- attr(p1, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p2_raw <- attr(p2, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+p3_raw <- attr(p3, "rawdata")%>%
+  mutate(x = (x*5000 + 3000)/1000)
+
+p1_raw$group <- "LandSpAES"
+p2_raw$group <- "WCBS"
+p3_raw$group <- "UKBMS"
+
+p4 <- do.call(rbind, list(p2, p1, p3)) %>%
+  plyr::mutate(x = (x*5000 + 3000)/1000)
 div_3km <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
               alpha = 0.3, colour = NA) +
   geom_line() +
-  # geom_rug(data = p1_raw, aes(x = x, y = response, colour = group),
-  #          sides = "b") +
-  # geom_rug(data = p2_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t") +
-  # geom_rug(data = p3_raw, aes(x = x, y = response, colour = group),
-  #          sides = "t", outside = TRUE) +
   coord_cartesian(clip = "off") +
   scale_fill_manual(aesthetics = c("fill","colour"),
                     values = my_col,
                     name = "Survey") +
   scale_y_continuous(limits = c(0,15), expand = c(0,0)) +
   # scale_x_continuous(limits = c(0,74000)) +
-  labs(x = "AES 3km ('000s)", y = "Predicted Butterfly Diversity") +
+  labs(x = "Landscape (3km) AES gradient score ('000s)", y = "Predicted Butterfly Diversity") +
   NULL
 div_3km
 
-ggsave(paste0(modpath,"Combined plots/Butterfly diversity 3km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
+div_3km_raw <- ggplot(p4, aes(x = x, y = predicted, colour = group, fill = group)) + 
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.3, colour = NA) +
+  geom_line() +coord_cartesian(clip = "off") +
+  geom_point(data = p3_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p2_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  geom_point(data = p1_raw, aes(x = x, y = response, colour = group), alpha = 0.5)+
+  
+
+  scale_fill_manual(aesthetics = c("fill","colour"),
+                    values = my_col,
+                    name = "Survey") +
+  scale_y_continuous(limits = c(0,18), expand = c(0,0)) +
+  # scale_x_continuous(limits = c(0,74000)) +
+  labs(x = "Landscape (3km) AES gradient score ('000s)", y = "Predicted Butterfly Diversity") +
+  NULL
+div_3km_raw
+#ggsave(paste0(modpath,"Combined plots/Butterfly diversity 3km individual schemes.png"), height = 800, width = 1000, units = "mm", scale = 0.15)
 
 div_1km + div_3km + plot_layout(guides='collect') &
   theme(legend.position='bottom')
-ggsave(paste0(modpath,"Combined plots/Butterfly diversity combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
+#ggsave(paste0(modpath,"Combined plots/Butterfly diversity combined 1km and 3km individual schemes.png"), height = 800, width = 1200, units = "mm", scale = 0.15)
 
 
 ## all plots combined
 
 abund_1km + abund_3km + div_1km + div_3km + rich_1km + rich_3km + plot_layout(guides = 'collect', ncol = 2) &
   theme(legend.position = "bottom")
-ggsave(paste0(modpath,"Combined plots/All individual scheme plots combined.png"), height = 1600, width = 1100, units = "mm", scale = 0.15)
+ggsave(paste0(modpath,"Combined plots/All individual scheme plots combined revised.png"), height = 1600, width = 1200, units = "mm", scale = 0.15)
 
-
+abund_1km_raw + abund_3km_raw + div_1km_raw + div_3km_raw + rich_1km_raw + rich_3km_raw + plot_layout(guides = 'collect', ncol = 2) &
+  theme(legend.position = "bottom")
+ggsave(paste0(modpath,"Combined plots/All individual scheme plots combined with points revised.png"), height = 1600, width = 1200, units = "mm", scale = 0.15)
