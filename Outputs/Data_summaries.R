@@ -95,4 +95,7 @@ all_summaries <- all_summaries[,c(6,7,1:5)]
 all_summaries <- all_summaries %>%
   arrange(Response, Dataset)
 
+all_summaries[,3:7] <- round(all_summaries[,3:7],2)
+
+
 write.csv(all_summaries, "Data summaries for SI.csv")
