@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/838791694.svg)](https://doi.org/10.5281/zenodo.15879870)
+
 ## This repository contains code related to the paper "Positive impacts of agri-environment schemes on butterflies from multiple evidence sources" by Jarvis _et al_ published in Journal of Applied Ecology
 
 ## How to use this repository:
